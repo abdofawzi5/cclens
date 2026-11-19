@@ -1,4 +1,5 @@
 import { Command } from 'commander';
+import { AdviseService } from '../../app/advise-service.js';
 import { AgentService } from '../../app/agent-service.js';
 import { BudgetService } from '../../app/budget-service.js';
 import { ContextService } from '../../app/context-service.js';
@@ -17,6 +18,7 @@ import type { Container } from '../../composition-root.js';
 import { defaultRules } from '../../core/rules/index.js';
 import { JsonRenderer } from '../render/json-renderer.js';
 import type { CliCommand, CommandContext, Services } from './command.js';
+import { AdviseCommand } from './commands/advise-command.js';
 import { AgentsCommand } from './commands/agents-command.js';
 import { BudgetCommand } from './commands/budget-command.js';
 import { ContextCommand } from './commands/context-command.js';
@@ -42,6 +44,7 @@ const COMMANDS: readonly CliCommand[] = [
   new SkillsCommand(),
   new UsageCommand(),
   new TokensCommand(),
+  new AdviseCommand(),
   new ReviewCommand(),
   new ReportCommand(),
   new UiCommand(),
@@ -84,14 +87,24 @@ export function buildServices(c: Container): Services {
     agentActivity: c.agentActivity,
     overhead: c.overhead,
   });
+  const inventory = new InventoryService(c.skillSource, usage, {
+    settings: c.settings,
+    claudeHome: c.paths.claudeHome,
+    overhead: c.overhead,
+  });
+  const context = new ContextService(c.overhead, c.clock);
+  const budget = new BudgetService({
+    config,
+    store: c.spendStore,
+    tokens: c.tokens,
+    usage,
+    clock: c.clock,
+    background: c.background,
+  });
   return {
     config,
     usage,
-    inventory: new InventoryService(c.skillSource, usage, {
-      settings: c.settings,
-      claudeHome: c.paths.claudeHome,
-      overhead: c.overhead,
-    }),
+    inventory,
     tokens: new TokenService(c.tokens, c.activitySource),
     search,
     engines: new EngineService(config, c.engineFactory, search),
@@ -105,15 +118,9 @@ export function buildServices(c: Container): Services {
       sessions: c.activitySource,
     }),
     jobs: new JobService(c.tokens, c.activitySource, c.clock),
-    budget: new BudgetService({
-      config,
-      store: c.spendStore,
-      tokens: c.tokens,
-      usage,
-      clock: c.clock,
-      background: c.background,
-    }),
-    context: new ContextService(c.overhead, c.clock),
+    budget,
+    context,
+    advise: new AdviseService({ review, context, inventory, search, budget }),
     setup: new SetupService({
       paths: c.paths,
       configStore: c.configStore,

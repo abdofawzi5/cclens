@@ -14,3 +14,4 @@ export * from './budget.js';
 export * from './overhead.js';
 export * from './fix-hints.js';
 export * from './trend.js';
+export * from './advice.js';

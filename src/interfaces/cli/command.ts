@@ -1,4 +1,5 @@
 import type { Command } from 'commander';
+import type { AdviseService } from '../../app/advise-service.js';
 import type { AgentService } from '../../app/agent-service.js';
 import type { BudgetService } from '../../app/budget-service.js';
 import type { ContextService } from '../../app/context-service.js';
@@ -27,6 +28,7 @@ export interface Services {
   readonly jobs: JobService;
   readonly budget: BudgetService;
   readonly context: ContextService;
+  readonly advise: AdviseService;
   readonly search: SearchService;
   readonly engines: EngineService;
   readonly setup: SetupService;
