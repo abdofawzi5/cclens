@@ -8,11 +8,13 @@ import type {
   ReviewSummary,
   SessionActivity,
 } from '../core/domain/review.js';
+import type { Agent, AgentActivity } from '../core/domain/agent.js';
 import type { Skill } from '../core/domain/skill.js';
 import type { SessionTokens, TokenBucket, TokenCounts } from '../core/domain/tokens.js';
 import { addTokens, totalTokens, ZERO_TOKENS } from '../core/domain/tokens.js';
 import { describeError, ValidationError } from '../core/errors.js';
 import type { Clock } from '../core/ports/infrastructure.js';
+import type { AgentActivitySource, AgentSource } from '../core/ports/agents.js';
 import type { AiReviewer, OptimizationRule, SessionActivitySource } from '../core/ports/review.js';
 import type { SkillSource } from '../core/ports/skills.js';
 import type { TokenUsageProvider } from '../core/ports/tokens.js';
@@ -49,7 +51,11 @@ export interface ReviewDeps {
   readonly clock: Clock;
   readonly rules: readonly OptimizationRule[];
   readonly ai?: AiReviewer;
+  readonly agents?: AgentSource;
+  readonly agentActivity?: AgentActivitySource;
 }
+
+const NO_AGENT_ACTIVITY: AgentActivity = { runs: [], calls: new Map() };
 
 const DAY_MS = 86_400_000;
 
@@ -99,32 +105,44 @@ export class ReviewService {
       }
     };
 
-    const [installed, counts, firstUse, daily, allSessions, allActivity] = await Promise.all([
-      sessionMode
-        ? []
-        : load('installed skills', [] as readonly Skill[], () => this.deps.skills.list()),
-      sessionMode
-        ? new Map<string, number>()
-        : load('skill uses', new Map<string, number>() as ReadonlyMap<string, number>, () =>
-            this.deps.usage.countBySkill({ since }),
-          ),
-      sessionMode ? undefined : this.deps.usage.firstUse().catch(() => undefined),
-      sessionMode
-        ? []
-        : load('daily tokens (ccusage)', [] as readonly TokenBucket[], () =>
-            this.deps.tokens.byPeriod('day', { since }),
-          ),
-      load('session tokens (ccusage)', [] as readonly SessionTokens[], () =>
-        this.deps.tokens.bySession(sessionMode && !options.last ? {} : { since }),
-      ),
-      load('session activity (transcripts)', [] as readonly SessionActivity[], () =>
-        this.deps.activity.read(sessionMode && !options.last ? undefined : since),
-      ),
-    ]);
+    const agentSource = this.deps.agents;
+    const agentActivity = this.deps.agentActivity;
+    const [installed, counts, firstUse, daily, allSessions, allActivity, agents, allAgentActivity] =
+      await Promise.all([
+        sessionMode
+          ? []
+          : load('installed skills', [] as readonly Skill[], () => this.deps.skills.list()),
+        sessionMode
+          ? new Map<string, number>()
+          : load('skill uses', new Map<string, number>() as ReadonlyMap<string, number>, () =>
+              this.deps.usage.countBySkill({ since }),
+            ),
+        sessionMode ? undefined : this.deps.usage.firstUse().catch(() => undefined),
+        sessionMode
+          ? []
+          : load('daily tokens (ccusage)', [] as readonly TokenBucket[], () =>
+              this.deps.tokens.byPeriod('day', { since }),
+            ),
+        load('session tokens (ccusage)', [] as readonly SessionTokens[], () =>
+          this.deps.tokens.bySession(sessionMode && !options.last ? {} : { since }),
+        ),
+        load('session activity (transcripts)', [] as readonly SessionActivity[], () =>
+          this.deps.activity.read(sessionMode && !options.last ? undefined : since),
+        ),
+        sessionMode || !agentSource
+          ? ([] as readonly Agent[])
+          : load('installed agents', [] as readonly Agent[], () => agentSource.list()),
+        agentActivity
+          ? load('agent runs (transcripts)', NO_AGENT_ACTIVITY, () =>
+              agentActivity.read(sessionMode && !options.last ? undefined : since),
+            )
+          : NO_AGENT_ACTIVITY,
+      ]);
 
     let scope: ReviewScope = { kind: 'window' };
     let sessions = allSessions;
     let activity = allActivity;
+    let agentRuns = allAgentActivity.runs;
     if (sessionMode) {
       const labels = SessionLabels.from(allActivity);
       const id = this.resolveSession(options, allSessions, allActivity, labels);
@@ -132,6 +150,7 @@ export class ReviewService {
       scope = { kind: 'session', sessionId: id, ...(title ? { title } : {}) };
       sessions = allSessions.filter((s) => s.sessionId === id);
       activity = allActivity.filter((a) => a.sessionId === id);
+      agentRuns = agentRuns.filter((r) => r.sessionId === id);
     }
 
     const ctx: ReviewContext = {
@@ -145,6 +164,9 @@ export class ReviewService {
       daily,
       sessions,
       activity,
+      installedAgents: agents,
+      agentCalls: allAgentActivity.calls,
+      agentRuns,
     };
 
     const disabled = new Set(config.disabledRules);

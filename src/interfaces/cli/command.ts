@@ -1,4 +1,5 @@
 import type { Command } from 'commander';
+import type { AgentService } from '../../app/agent-service.js';
 import type { ConfigService } from '../../app/config-service.js';
 import type { DoctorService } from '../../app/doctor-service.js';
 import type { ReportService } from '../../app/report-service.js';
@@ -19,6 +20,7 @@ export interface Services {
   readonly tokens: TokenService;
   readonly review: ReviewService;
   readonly report: ReportService;
+  readonly agents: AgentService;
   readonly search: SearchService;
   readonly engines: EngineService;
   readonly setup: SetupService;

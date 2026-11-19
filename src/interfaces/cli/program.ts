@@ -1,4 +1,5 @@
 import { Command } from 'commander';
+import { AgentService } from '../../app/agent-service.js';
 import { ConfigService } from '../../app/config-service.js';
 import { DoctorService } from '../../app/doctor-service.js';
 import { InventoryService } from '../../app/inventory/inventory-service.js';
@@ -13,6 +14,7 @@ import type { Container } from '../../composition-root.js';
 import { defaultRules } from '../../core/rules/index.js';
 import { JsonRenderer } from '../render/json-renderer.js';
 import type { CliCommand, CommandContext, Services } from './command.js';
+import { AgentsCommand } from './commands/agents-command.js';
 import { ConfigCommand } from './commands/config-command.js';
 import { DoctorCommand } from './commands/doctor-command.js';
 import { HookCommand } from './commands/hook-command.js';
@@ -34,6 +36,7 @@ const COMMANDS: readonly CliCommand[] = [
   new TokensCommand(),
   new ReviewCommand(),
   new ReportCommand(),
+  new AgentsCommand(),
   new SearchCommand(),
   new EnginesCommand(),
   new InitCommand(),
@@ -64,6 +67,8 @@ export function buildServices(c: Container): Services {
     clock: c.clock,
     rules: defaultRules(),
     ai: c.aiReviewer,
+    agents: c.agentSource,
+    agentActivity: c.agentActivity,
   });
   return {
     config,
@@ -74,6 +79,13 @@ export function buildServices(c: Container): Services {
     engines: new EngineService(config, c.engineFactory, search),
     review,
     report: new ReportService(review),
+    agents: new AgentService({
+      agents: c.agentSource,
+      activity: c.agentActivity,
+      tokens: c.tokens,
+      prices: c.prices,
+      sessions: c.activitySource,
+    }),
     setup: new SetupService({
       paths: c.paths,
       configStore: c.configStore,

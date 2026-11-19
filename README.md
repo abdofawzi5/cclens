@@ -50,6 +50,7 @@ cclens init --plugin
 | `cclens tokens [view]`  | Tokens and estimated cost: `daily` (default), `weekly`, `monthly`, `session`, `project`, `blocks` (5-hour windows). `--since`, `--until`, `--project`, `--limit`. Sessions are shown by name                                                           |
 | `cclens review`         | Optimization advice from your own numbers. `--days 30`, `--session <id or title>` or `--last`, `--rule <id>`, `--list-rules`, `--ai`                                                                                                                   |
 | `cclens report`         | Usage report: totals, daily cost and tokens, cost by model, costliest sessions, unused skills, findings. Markdown by default; `--open` writes a self-contained HTML page with charts and opens it; `--format json`, `--out <file>`, `--days`/`--since` |
+| `cclens agents`         | Subagent use: calls, runs, tokens and estimated cost per agent type (`--by session` per session), and installed agents you never call (`--unused`). `--since 30d`                                                                                      |
 | `cclens search <query>` | Search GitHub, SkillsMP and skills.sh at once, duplicates merged, ranked by stars. `--engine`, `--limit`, `--min-stars`, `--sort stars\|installs\|updated\|relevance`, `--refresh`                                                                     |
 | `cclens engines`        | List search engines; `enable`, `disable`, `add <file.json>`, `remove`, `test [id]`                                                                                                                                                                     |
 | `cclens init`           | Set up or repair cclens. `--plugin` when the Claude Code plugin records skill uses                                                                                                                                                                     |
@@ -109,7 +110,7 @@ Keys are always `${env:NAME}` references and never stored in the file.
 
 ## Privacy
 
-Everything stays on your machine. `cclens review --ai` is the one exception you opt into: it runs `claude -p` with your own Claude login and sends aggregate numbers only (token totals, session sizes, rule findings), never your prompts or transcripts. Tools and MCP servers are turned off for that call and spending is capped at $0.50. Skill search sends only your search text to the registries, and repository names to GitHub to look up stars.
+Everything stays on your machine. `cclens review --ai` is the one exception you opt into: it runs `claude -p` with your own Claude login and sends aggregate numbers only (token totals, session sizes, rule findings), never your prompts or transcripts. Tools and MCP servers are turned off for that call and spending is capped at $0.50. Skill search sends only your search text to the registries, and repository names to GitHub to look up stars. `cclens agents` downloads the public LiteLLM model price list (the one ccusage uses) once a day to price subagent messages; it sends nothing about you.
 
 ## Development
 

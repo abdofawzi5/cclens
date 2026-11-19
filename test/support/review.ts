@@ -65,6 +65,9 @@ export function reviewContext(p: Partial<ReviewContext> = {}): ReviewContext {
     daily: [],
     sessions: [],
     activity: [],
+    installedAgents: [],
+    agentCalls: new Map(),
+    agentRuns: [],
     ...p,
   };
 }

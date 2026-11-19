@@ -1,6 +1,11 @@
 import { realpathSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { delimiter, dirname, join } from 'node:path';
+import { AgentDirSource, PluginAgentSource } from './adapters/claude/agents/agent-sources.js';
+import { TranscriptAgentSource } from './adapters/claude/history/agent-activity-source.js';
+import { LiteLlmPriceList } from './adapters/pricing/litellm-price-list.js';
+import { CompositeAgentSource } from './app/inventory/composite-agent-source.js';
+import type { AgentActivitySource, AgentSource, PriceList } from './core/ports/agents.js';
 import { JsonSettingsManager } from './adapters/claude/json-settings-manager.js';
 import { PluginTreeSource } from './adapters/claude/skills/plugin-tree-source.js';
 import { SkillDirSource } from './adapters/claude/skills/skill-dir-source.js';
@@ -82,6 +87,12 @@ export interface Container {
   /** Shell command that starts this cclens CLI; written into Claude Code hooks. */
   readonly selfCommand: string;
   readonly nodeVersion: string;
+  /** All installed agents: personal, project and plugin (Composite). */
+  readonly agentSource: AgentSource;
+  /** Subagent runs and Agent calls from transcripts. */
+  readonly agentActivity: AgentActivitySource;
+  /** Model prices for per-message agent costs (LiteLLM list, cached a day). */
+  readonly prices: PriceList;
   /** Writes files the user asked for (`cclens report --out`). */
   readonly fileWriter: FileWriter;
   /** Opens a report in the default browser (`--open`). */
@@ -196,6 +207,17 @@ export function createContainer(options: ContainerOptions = {}): Container {
     aiReviewer: new ClaudeCliReviewer(runner, { command: env['CCLENS_CLAUDE_BIN'] ?? 'claude' }),
     selfCommand: o.selfCommand ?? defaultSelfCommand(options.env),
     nodeVersion: process.version,
+    agentSource: new CompositeAgentSource([
+      new AgentDirSource('personal', join(paths.claudeHome, 'agents'), 'personal'),
+      new AgentDirSource(
+        'project',
+        join(options.cwd ?? process.cwd(), '.claude', 'agents'),
+        'project',
+      ),
+      new PluginAgentSource(paths.pluginRoots),
+    ]),
+    agentActivity: new TranscriptAgentSource(paths.claudeProjectsDir, logger),
+    prices: new LiteLlmPriceList(http, cache),
     fileWriter: new AtomicFileWriter(),
     opener: new SystemOpener(runner),
     chartScript: new ChartJsAsset(),

@@ -1,4 +1,5 @@
 import type { OptimizationRule } from '../ports/review.js';
+import { ExpensiveAgentsRule, UnusedAgentsRule } from './agents.js';
 import { CacheChurnRule } from './cache-churn.js';
 import { FrequentCompactionRule } from './frequent-compaction.js';
 import { LongSessionsRule } from './long-sessions.js';
@@ -7,6 +8,7 @@ import { UnusedSkillsRule } from './unused-skills.js';
 import { UsageSpikesRule } from './usage-spikes.js';
 
 export type { SkillGroup } from './unused-skills.js';
+export { ExpensiveAgentsRule, UnusedAgentsRule } from './agents.js';
 export { CacheChurnRule } from './cache-churn.js';
 export { FrequentCompactionRule } from './frequent-compaction.js';
 export { LongSessionsRule } from './long-sessions.js';
@@ -23,5 +25,7 @@ export function defaultRules(): readonly OptimizationRule[] {
     new CacheChurnRule(),
     new ModelMixRule(),
     new UsageSpikesRule(),
+    new UnusedAgentsRule(),
+    new ExpensiveAgentsRule(),
   ];
 }

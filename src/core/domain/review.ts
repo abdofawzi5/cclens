@@ -1,3 +1,4 @@
+import type { Agent, AgentRun } from './agent.js';
 import type { Recommendation } from './recommendation.js';
 import type { SessionTitle } from './session-labels.js';
 import type { Skill } from './skill.js';
@@ -39,6 +40,12 @@ export interface ReviewContext {
   readonly daily: readonly TokenBucket[];
   readonly sessions: readonly SessionTokens[];
   readonly activity: readonly SessionActivity[];
+  /** Installed agents (empty in a session review). */
+  readonly installedAgents: readonly Agent[];
+  /** Agent tool calls per `subagent_type` in the window. */
+  readonly agentCalls: ReadonlyMap<string, number>;
+  /** Subagent runs in scope, with tokens per model. */
+  readonly agentRuns: readonly AgentRun[];
 }
 
 /** Totals shown above the recommendations. */
