@@ -1,5 +1,5 @@
 {
-  "name": "cclens",
+  "name": "@abdofawzi5/cclens",
   "version": "0.1.0",
   "description": "Claude Code Lens: skill inventory and usage, token stats, session optimization advice, and skill discovery across registries.",
   "type": "module",

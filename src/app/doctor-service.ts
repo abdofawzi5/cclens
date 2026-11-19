@@ -114,7 +114,7 @@ export class DoctorService {
           return {
             status: 'fail',
             message: `the plugin cannot find cclens: ${d.hookRunner.path} is missing`,
-            fix: 'npm i -g cclens && cclens init --plugin',
+            fix: 'npm i -g @abdofawzi5/cclens && cclens init --plugin',
           };
         }
         return this.targetOf(runner, 'cclens init --plugin');

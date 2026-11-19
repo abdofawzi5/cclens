@@ -29,6 +29,6 @@ fi
 
 # 3. Nothing to run: leave a note for `cclens doctor` and the user.
 mkdir -p "$cclens_home" 2>/dev/null &&
-  printf '%s cclens plugin: cclens CLI not found. Run: npm i -g cclens && cclens init --plugin\n' \
+  printf '%s cclens plugin: cclens CLI not found. Run: npm i -g @abdofawzi5/cclens && cclens init --plugin\n' \
     "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >>"$cclens_home/hook-errors.log" 2>/dev/null
 exit 0

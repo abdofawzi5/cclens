@@ -8,14 +8,14 @@ Status: Phases 0–5 done; the dashboard (Phase 6) is optional. Read with [ARCHI
 
 ## 1. Goals
 
-| #   | Requirement                                                                                               | Notes                                                                                              |
-| --- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| R1  | **Installed skills inventory**: count and list every skill                                                | Personal (`~/.claude/skills`), project (`.claude/skills`), plugin skills, grouped by source/plugin |
-| R2  | **Skill usage counts**: how often each skill is used                                                      | Live capture through a hook, plus backfill from existing transcripts so history isn't lost         |
-| R3  | **Token consumption**: per day, week, month, session, project, model                                      | Integrate **ccusage** as a library rather than rewriting the JSONL parsing                         |
-| R4  | **Session review and optimization advice**                                                                | Rule-based analyzers (fast, offline) plus an optional AI review through headless `claude -p`       |
-| R5  | **Skill discovery search** across registries, ranked by GitHub stars                                      | Pluggable search engines you can enable, disable, or add                                           |
-| R6  | **Installable and publishable**: `npm i -g cclens` plus `cclens init`, or install as a Claude Code plugin | `init` creates the data files and registers hooks; `uninstall` reverses it cleanly                 |
+| #   | Requirement                                                                                                           | Notes                                                                                              |
+| --- | --------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| R1  | **Installed skills inventory**: count and list every skill                                                            | Personal (`~/.claude/skills`), project (`.claude/skills`), plugin skills, grouped by source/plugin |
+| R2  | **Skill usage counts**: how often each skill is used                                                                  | Live capture through a hook, plus backfill from existing transcripts so history isn't lost         |
+| R3  | **Token consumption**: per day, week, month, session, project, model                                                  | Integrate **ccusage** as a library rather than rewriting the JSONL parsing                         |
+| R4  | **Session review and optimization advice**                                                                            | Rule-based analyzers (fast, offline) plus an optional AI review through headless `claude -p`       |
+| R5  | **Skill discovery search** across registries, ranked by GitHub stars                                                  | Pluggable search engines you can enable, disable, or add                                           |
+| R6  | **Installable and publishable**: `npm i -g @abdofawzi5/cclens` plus `cclens init`, or install as a Claude Code plugin | `init` creates the data files and registers hooks; `uninstall` reverses it cleanly                 |
 
 ### Added requirements (proposed)
 
@@ -92,11 +92,11 @@ Every command accepts `--json`.
 
 There are two supported paths, and both end in the same state.
 
-1. **npm:** `npm i -g cclens` → `cclens init`.
+1. **npm:** `npm i -g @abdofawzi5/cclens` → `cclens init`.
    - Installing deliberately does **not** run a `postinstall` script. pnpm blocks those by default, and changing `settings.json` without asking is bad practice. `init` is explicit and safe to run again.
 2. **Claude Code plugin:** `/plugin marketplace add <you>/cclens` → `/plugin install cclens`.
    - The plugin's `hooks/hooks.json` registers the hooks automatically, and a `/cclens` slash command and skill come with it.
-   - The plugin still needs the CLI: `npm i -g cclens` → `cclens init --plugin`, which saves the absolute command for the plugin's hook script and keeps cclens hooks out of `settings.json` so nothing is counted twice. `npx` was rejected ([ADR 0006](adr/0006-plugin-hook-runner.md)).
+   - The plugin still needs the CLI: `npm i -g @abdofawzi5/cclens` → `cclens init --plugin`, which saves the absolute command for the plugin's hook script and keeps cclens hooks out of `settings.json` so nothing is counted twice. `npx` was rejected ([ADR 0006](adr/0006-plugin-hook-runner.md)).
 
 `init` does the following:
 
@@ -136,7 +136,7 @@ There are two supported paths, and both end in the same state.
 
 ## 8. Open questions
 
-1. **Name**: `cclens` (npm name is free; `skillscope` is taken). Keep it?
+1. **Name**: resolved 2026-11-19. npm refused the unscoped `cclens` as too similar to `cc-lens`, so the package is `@abdofawzi5/cclens`; the command, data folder and plugin are still `cclens`.
 2. **skills.sh key**: request one from skills-api@vercel.com, or ship that engine disabled until the user adds a key?
 3. **Phase 6 dashboard**: include it in v1, or ship CLI-only first?
 4. **Windows support** in v1, or macOS/Linux only?

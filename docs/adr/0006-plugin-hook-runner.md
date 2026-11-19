@@ -20,7 +20,7 @@ The repo is also a Claude Code plugin marketplace (`.claude-plugin/marketplace.j
   1. exits at once when a `settings.json` (user, or the current project's) already contains the `CCLENS_HOOK=1` marker of an `init` hook, so a use is never counted twice;
   2. otherwise runs the command in `hook-runner` with `hook` appended, passing stdin through;
   3. otherwise runs `cclens hook` if `cclens` is on PATH;
-  4. otherwise appends a hint (`npm i -g cclens && cclens init --plugin`) to `~/.cclens/hook-errors.log`.
+  4. otherwise appends a hint (`npm i -g @abdofawzi5/cclens && cclens init --plugin`) to `~/.cclens/hook-errors.log`.
 
   It prints nothing and always exits 0. `sh` and `grep` are in `/bin` and `/usr/bin` on macOS and Linux, and Claude Code on Windows runs hooks through Git Bash.
 

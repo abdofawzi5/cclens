@@ -1,4 +1,4 @@
-# cclens
+# @abdofawzi5/cclens
 
 ## 0.1.0
 

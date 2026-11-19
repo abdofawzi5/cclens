@@ -7,9 +7,11 @@
 ## Install
 
 ```bash
-npm install -g cclens
+npm install -g @abdofawzi5/cclens
 cclens init --backfill
 ```
+
+The npm package is scoped (`@abdofawzi5/cclens`); the command it installs is `cclens`.
 
 `init` is safe to run again. It:
 
@@ -33,7 +35,7 @@ The repo is also a Claude Code plugin marketplace. The plugin registers the same
 The plugin runs the CLI, so install that too, then tell cclens the plugin owns the hooks:
 
 ```bash
-npm install -g cclens
+npm install -g @abdofawzi5/cclens
 cclens init --plugin
 ```
 

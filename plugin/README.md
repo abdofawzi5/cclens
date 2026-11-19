@@ -17,7 +17,7 @@ On older Claude Code versions use `/plugin marketplace add abdofawzi5/cclens`, t
 The plugin needs the CLI:
 
 ```bash
-npm install -g cclens
+npm install -g @abdofawzi5/cclens
 cclens init --plugin
 ```
 

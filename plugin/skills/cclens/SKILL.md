@@ -12,7 +12,7 @@ cclens reads Claude Code's own data on this machine and answers from it. Run it 
 1. Run `cclens --version`. If that works, use `cclens`.
 2. If the command is not found, use the command line `cclens init` saved (it works without PATH):
    `eval "$(cat "${CCLENS_HOME:-$HOME/.cclens}/hook-runner") --version"` and then the same prefix for every command below.
-3. If neither works, cclens is not installed. Tell the user to run `npm i -g cclens && cclens init --plugin`, and stop.
+3. If neither works, cclens is not installed. Tell the user to run `npm i -g @abdofawzi5/cclens && cclens init --plugin`, and stop.
 
 ## Pick the command
 
