@@ -143,14 +143,17 @@ Proposed 2026-11-19 after the first real report showed almost every installed sk
 ### Phase 7: reports and charts (0.3.0)
 
 - **`ReportService` (app)** builds a `UsageReport` model from the existing services: KPI totals, daily tokens and cost, top sessions by cost (with titles), unused skills by plugin, review findings. `cclens report [--since 30d] [--format md|json|html] [--out file] [--open]`.
-- **`HtmlReportRenderer` (interfaces)** writes one self-contained file with inline SVG charts drawn by a small chart module (bars, horizontal bars, sparkline). No chart library from a CDN, so the report opens offline and makes no requests (A7).
+- **`HtmlReportRenderer` (interfaces)** writes one self-contained file charted with [Chart.js](https://www.chartjs.org/) (MIT, the most used open-source chart library). Chart.js is an npm dependency and its UMD build is inlined into the file, not loaded from a CDN, so the report opens offline and makes no requests (A7). Charts sit behind a `ChartRenderer` interface so the library can be swapped.
 - **Inside Claude:** the plugin skill gains a rule: when the user asks for a chart and a chart or visual tool is available, call `cclens … --json` and chart that output; otherwise run `cclens report --format html --open`.
 - **Tests:** snapshot of the report model on fixtures; HTML contains no `http` URL except links.
 
 ### Phase 8: agents (0.4.0)
 
 - **Inventory:** `AgentSource` port, adapters for `~/.claude/agents`, `.claude/agents` and plugin `agents/` folders (same pattern as the skill sources, `Composite` merge).
-- **Usage:** `AgentActivitySource` port; the transcript adapter pairs each `Agent` tool call (`subagent_type`, description) with its sidechain transcript `<session>/subagents/agent-<id>.jsonl` and sums its token counts. Cost is estimated from the session's cost by token share and labelled as an estimate.
+- **Usage:** `AgentActivitySource` port; the transcript adapter pairs each `Agent` tool call (`subagent_type`, description) with its sidechain transcript `<session>/subagents/agent-<id>.jsonl` and sums its token counts per model. Each agent gets two cost figures:
+  - **priced:** every sidechain message priced by its own model (subagents often run on a cheaper model), using the same LiteLLM price list ccusage uses, fetched through the existing `HttpClient` + `FileCache` (24-hour TTL; only the price list is downloaded, nothing is sent);
+  - **share:** the agent's share of its session's tokens and of the session's ccusage cost, so it lines up with `tokens session`.
+    When prices can't be loaded (offline, unknown model), the priced column falls back to the share estimate and says so.
 - **Command:** `cclens agents [--unused] [--by type|session] [--since 30d]`.
 - **Rules:** `unused-agents` (installed agent descriptions cost context too) and `expensive-agents` (one run over a set share of its session's cost).
 - **Note:** agent use varies widely between users, so fixtures with many subagents carry the tests.
@@ -177,8 +180,8 @@ Proposed 2026-11-19 after the first real report showed almost every installed sk
 
 ### Open questions for these phases
 
-1. Chart drawing: a ~200-line SVG module, or a vendored chart library inside the HTML file?
-2. Agent cost: token share of the session (no extra pricing data), or price each sidechain message with ccusage's model prices?
+1. ~~Chart drawing~~: decided 2026-11-19: Chart.js, inlined into the HTML file.
+2. ~~Agent cost~~: decided 2026-11-19: both, priced per message and share of session (see Phase 8).
 3. Do scheduled-task sessions carry a marker in the transcript, or is title grouping the only signal?
 4. Budget warnings: on by default with no budget set (off), or offered by `cclens init`?
 
