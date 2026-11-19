@@ -16,6 +16,8 @@ const hookGroup = z.looseObject({ matcher: z.string().optional(), hooks: z.array
 const settingsSchema = z.looseObject({
   hooks: z.record(z.string(), z.array(hookGroup)).optional(),
 });
+// Parsed on its own so an odd `enabledPlugins` never blocks or alters hook edits.
+const enabledPluginsSchema = z.record(z.string(), z.unknown());
 
 type Settings = z.infer<typeof settingsSchema>;
 type HookGroup = z.infer<typeof hookGroup>;
@@ -129,6 +131,14 @@ export class JsonSettingsManager implements ClaudeSettingsManager {
       }
     }
     return out;
+  }
+
+  async enabledPlugins(scope: SettingsScope): Promise<readonly string[]> {
+    const parsed = enabledPluginsSchema.safeParse((await this.read(scope))['enabledPlugins']);
+    if (!parsed.success) return [];
+    return Object.entries(parsed.data)
+      .filter(([, enabled]) => enabled === true)
+      .map(([key]) => key);
   }
 
   private async read(scope: SettingsScope): Promise<Settings> {

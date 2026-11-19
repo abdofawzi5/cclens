@@ -16,6 +16,7 @@ export function resolvePaths(
     cacheDir: join(cclensHome, 'cache'),
     backupsDir: join(cclensHome, 'backups'),
     hookErrorLog: join(cclensHome, 'hook-errors.log'),
+    hookRunnerFile: join(cclensHome, 'hook-runner'),
     claudeHome,
     claudeProjectsDir: join(claudeHome, 'projects'),
     claudeSkillsDir: join(claudeHome, 'skills'),

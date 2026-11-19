@@ -25,4 +25,6 @@ export interface ClaudeSettingsManager {
   /** Removes hooks whose command matches. Returns how many were removed. */
   removeHooks(scope: SettingsScope, predicate: (command: string) => boolean): Promise<number>;
   listHooks(scope: SettingsScope): Promise<readonly HookSpec[]>;
+  /** Keys of `enabledPlugins` set to true, e.g. `cclens@cclens`. */
+  enabledPlugins(scope: SettingsScope): Promise<readonly string[]>;
 }

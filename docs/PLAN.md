@@ -2,7 +2,7 @@
 
 > **Claude Code Lens**: see what Claude Code is doing for you. It shows which skills you have, which you use, where your tokens go, and how to use fewer. It also finds new skills across the main skill registries.
 
-Status: **planning**. No code yet. Read with [ARCHITECTURE.md](ARCHITECTURE.md).
+Status: Phases 0–5 done; the dashboard (Phase 6) is optional. Read with [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ---
 
@@ -96,7 +96,7 @@ There are two supported paths, and both end in the same state.
    - Installing deliberately does **not** run a `postinstall` script. pnpm blocks those by default, and changing `settings.json` without asking is bad practice. `init` is explicit and safe to run again.
 2. **Claude Code plugin:** `/plugin marketplace add <you>/cclens` → `/plugin install cclens`.
    - The plugin's `hooks/hooks.json` registers the hooks automatically, and a `/cclens` slash command and skill come with it.
-   - The hook runs `npx -y cclens hook …`, or the global binary if one is installed.
+   - The plugin still needs the CLI: `npm i -g cclens` → `cclens init --plugin`, which saves the absolute command for the plugin's hook script and keeps cclens hooks out of `settings.json` so nothing is counted twice. `npx` was rejected ([ADR 0006](adr/0006-plugin-hook-runner.md)).
 
 `init` does the following:
 
@@ -118,7 +118,7 @@ There are two supported paths, and both end in the same state.
 | **2. Stats**                | `skills` (inventory sources), `usage`, `tokens` (ccusage adapter), renderers (table/json/markdown)                                                              | Numbers match a manual count on fixture data                                                                                                |
 | **3. Review**               | Analyzer rules + recommendation engine; `--ai` reviewer through `claude -p`                                                                                     | Each rule has fixture tests; the report lists the estimated tokens each fix would save. Done 2026-11-19 (ADR 0005)                          |
 | **4. Search**               | Engine port, GitHub / SkillsMP / skills.sh adapters, generic HTTP engine, aggregator (dedupe + star enrichment + ranking), cache, `engines` command             | Results from all enabled engines merge correctly; turning an engine off works; one engine failing doesn't break the others. Done 2026-11-19 |
-| **5. Distribution**         | Plugin manifest + marketplace, README, docs, changesets, npm publish dry run                                                                                    | `npm pack` installs cleanly; plugin install works in a clean Claude Code                                                                    |
+| **5. Distribution**         | Plugin manifest + marketplace, README, docs, changesets, npm publish dry run                                                                                    | `npm pack` installs cleanly; plugin install works in a clean Claude Code. Done 2026-11-19 (ADR 0006)                                        |
 | **6. Dashboard** (optional) | `cclens ui`: local web UI over the same services                                                                                                                | Charts render from the same JSON the CLI produces                                                                                           |
 
 ---

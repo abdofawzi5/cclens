@@ -12,7 +12,7 @@ Skill-usage capture needs Claude Code hooks in `settings.json`. npm `postinstall
 - `npm i -g cclens` installs only the binary.
 - `cclens init` is explicit and safe to re-run: create `~/.cclens/`, back up `settings.json`, merge hooks atomically, migrate the legacy `~/.claude/skill-usage.log` (after confirmation), optionally backfill from transcripts, then run `doctor`.
 - `cclens uninstall` removes exactly the hooks cclens added (matched by command prefix) and can restore the backup.
-- Alternative path: the repo is also a Claude Code plugin marketplace; installing the plugin registers the same hooks through `hooks/hooks.json`.
+- Alternative path: the repo is also a Claude Code plugin marketplace; installing the plugin registers the same hooks through `hooks/hooks.json` (how those hooks find the CLI, and how double counting is avoided: [ADR 0006](0006-plugin-hook-runner.md)).
 - Hook commands always exit 0, finish within 150 ms, and log failures to `~/.cclens/hook-errors.log`.
 
 ## Consequences

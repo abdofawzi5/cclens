@@ -1,14 +1,19 @@
-import { isCclensHookCommand, isLegacyHookCommand } from '../core/domain/hooks.js';
+import {
+  isCclensHookCommand,
+  isCclensPluginKey,
+  isLegacyHookCommand,
+} from '../core/domain/hooks.js';
 import { describeError } from '../core/errors.js';
 import type { ClaudeSettingsManager, HookSpec } from '../core/ports/claude-settings.js';
 import type { ConfigStore, FileProbe, Paths } from '../core/ports/infrastructure.js';
-import type { CheckResult, HealthCheck } from '../core/ports/install.js';
+import type { CheckResult, HealthCheck, HookRunnerStore } from '../core/ports/install.js';
 import type { UsageService } from './usage-service.js';
 
 export interface DoctorDeps {
   readonly paths: Paths;
   readonly configStore: ConfigStore;
   readonly settings: ClaudeSettingsManager;
+  readonly hookRunner: HookRunnerStore;
   readonly usage: UsageService;
   readonly files: FileProbe;
   readonly nodeVersion: string;
@@ -37,6 +42,13 @@ export class DoctorService {
       ...(await d.settings.listHooks('user')),
       ...(await d.settings.listHooks('project')),
     ];
+    const settingsHooks = async (): Promise<HookSpec[]> =>
+      (await allHooks()).filter((h) => isCclensHookCommand(h.command));
+    const pluginEnabled = async (): Promise<boolean> =>
+      [
+        ...(await d.settings.enabledPlugins('user')),
+        ...(await d.settings.enabledPlugins('project')),
+      ].some(isCclensPluginKey);
 
     return [
       check('node', 'Node.js version', () => {
@@ -66,31 +78,46 @@ export class DoctorService {
         return { status: 'ok', message: `${total} skill uses recorded in ${d.paths.eventsFile}` };
       }),
       check('hooks', 'Claude Code hooks', async () => {
-        const ours = (await allHooks()).filter((h) => isCclensHookCommand(h.command));
-        const events = new Set(ours.map((h) => h.event));
+        const events = new Set((await settingsHooks()).map((h) => h.event));
         if (events.has('PostToolUse') && events.has('UserPromptSubmit')) {
           return { status: 'ok', message: 'PostToolUse (Skill) and UserPromptSubmit registered' };
         }
+        if (await pluginEnabled()) {
+          return { status: 'ok', message: 'registered by the cclens Claude Code plugin' };
+        }
         return {
           status: 'fail',
-          message: ours.length === 0 ? 'not registered' : 'only partly registered',
-          fix: 'cclens init',
+          message: events.size === 0 ? 'not registered' : 'only partly registered',
+          fix: 'cclens init (or install the cclens Claude Code plugin)',
         };
       }),
+      check('hook-owner', 'One hook source', async () => {
+        const inSettings = (await settingsHooks()).length > 0;
+        const plugin = await pluginEnabled();
+        if (inSettings && plugin) {
+          return {
+            status: 'warn',
+            message:
+              'both settings.json and the cclens plugin register hooks; the plugin stands down so uses are counted once',
+            fix: 'Keep one: `cclens init --plugin` to use the plugin only, or disable the plugin',
+          };
+        }
+        if (plugin) return { status: 'ok', message: 'the cclens plugin' };
+        return { status: 'ok', message: inSettings ? 'settings.json' : 'none' };
+      }),
       check('hook-target', 'Hook command target', async () => {
-        const ours = (await allHooks()).filter((h) => isCclensHookCommand(h.command));
-        const first = ours[0];
-        if (!first) return { status: 'warn', message: 'no cclens hook to check' };
-        const paths = quotedPaths(first.command);
-        const missing: string[] = [];
-        for (const p of paths) if (!(await d.files.exists(p))) missing.push(p);
-        return missing.length === 0
-          ? { status: 'ok', message: paths.join(' ') || first.command }
-          : {
-              status: 'fail',
-              message: `missing: ${missing.join(', ')}`,
-              fix: 'Re-run `cclens init` after moving or upgrading cclens or Node.js',
-            };
+        const first = (await settingsHooks())[0];
+        if (first) return this.targetOf(first.command, 'cclens init');
+        if (!(await pluginEnabled())) return { status: 'warn', message: 'no cclens hook to check' };
+        const runner = await d.hookRunner.read();
+        if (runner === undefined) {
+          return {
+            status: 'fail',
+            message: `the plugin cannot find cclens: ${d.hookRunner.path} is missing`,
+            fix: 'npm i -g cclens && cclens init --plugin',
+          };
+        }
+        return this.targetOf(runner, 'cclens init --plugin');
       }),
       check('legacy-hook', 'Old skill-usage hook', async () => {
         const legacy = (await allHooks()).filter((h) => isLegacyHookCommand(h.command));
@@ -103,6 +130,20 @@ export class DoctorService {
             };
       }),
     ];
+  }
+
+  /** Checks that the absolute paths in a hook command line still exist. */
+  private async targetOf(command: string, fix: string): Promise<Outcome> {
+    const paths = quotedPaths(command);
+    const missing: string[] = [];
+    for (const p of paths) if (!(await this.deps.files.exists(p))) missing.push(p);
+    return missing.length === 0
+      ? { status: 'ok', message: paths.join(' ') || command }
+      : {
+          status: 'fail',
+          message: `missing: ${missing.join(', ')}`,
+          fix: `Re-run \`${fix}\` after moving or upgrading cclens or Node.js`,
+        };
   }
 
   async run(): Promise<readonly CheckResult[]> {

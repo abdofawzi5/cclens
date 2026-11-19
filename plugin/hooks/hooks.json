@@ -1,0 +1,28 @@
+{
+  "description": "cclens: record each skill use (Claude runs a skill, or you type /skill-name)",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/record-skill-use.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/record-skill-use.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -21,12 +21,14 @@ import { TranscriptSource } from './adapters/claude/history/transcript-source.js
 import { ClaudeCliReviewer } from './adapters/claude/review/claude-cli-reviewer.js';
 import { JsonConfigStore } from './adapters/storage/json-config-store.js';
 import { JsonlEventStore } from './adapters/storage/jsonl-event-store.js';
+import { FileHookRunnerStore } from './adapters/storage/file-hook-runner-store.js';
 import { FileLogger } from './adapters/system/file-logger.js';
 import { NodeFileProbe } from './adapters/system/node-file-probe.js';
 import { NodeProcessRunner } from './adapters/system/node-process-runner.js';
 import { resolvePaths } from './adapters/system/paths.js';
 import { SystemClock } from './adapters/system/system-clock.js';
 import type { ClaudeSettingsManager } from './core/ports/claude-settings.js';
+import type { HookRunnerStore } from './core/ports/install.js';
 import type {
   Cache,
   HttpClient,
@@ -53,6 +55,8 @@ export interface Container {
   readonly configStore: ConfigStore;
   readonly eventStore: UsageEventStore;
   readonly settings: ClaudeSettingsManager;
+  /** Where `init` saves the cclens command line for the plugin's hook script. */
+  readonly hookRunner: HookRunnerStore;
   readonly legacySource: UsageHistorySource;
   readonly transcriptSource: UsageHistorySource;
   /** All installed skills: personal, project and plugin (Composite). */
@@ -156,6 +160,7 @@ export function createContainer(options: ContainerOptions = {}): Container {
       paths.backupsDir,
       clock,
     ),
+    hookRunner: new FileHookRunnerStore(paths.hookRunnerFile),
     legacySource: new LegacyLogSource(paths.legacyUsageLog),
     transcriptSource: new TranscriptSource(paths.claudeProjectsDir, logger),
     skillSource: new CompositeSkillSource([

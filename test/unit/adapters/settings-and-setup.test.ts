@@ -8,6 +8,7 @@ import { InstallRunner } from '../../../src/app/install/install-runner.js';
 import { createContainer, type Container } from '../../../src/composition-root.js';
 import { ConfigError } from '../../../src/core/errors.js';
 import type { InstallStep } from '../../../src/core/ports/install.js';
+import type { DoctorService } from '../../../src/app/doctor-service.js';
 import { buildServices } from '../../../src/interfaces/cli/program.js';
 import { FixedClock } from '../../support/fakes.js';
 
@@ -96,6 +97,18 @@ describe('JsonSettingsManager', () => {
     await writeFile(userFile(), '{"a":2}');
     await manager.restore(backup);
     expect(await readFile(userFile(), 'utf8')).toBe('{"a":1}');
+  });
+
+  it('lists enabled plugins and ignores odd values', async () => {
+    await mkdir(join(dir, 'claude'));
+    expect(await manager.enabledPlugins('user')).toEqual([]);
+    await writeFile(
+      userFile(),
+      JSON.stringify({ enabledPlugins: { 'cclens@cclens': true, 'off@m': false, 'odd@m': 'yes' } }),
+    );
+    expect(await manager.enabledPlugins('user')).toEqual(['cclens@cclens']);
+    await writeFile(userFile(), JSON.stringify({ enabledPlugins: ['not', 'a', 'map'] }));
+    expect(await manager.enabledPlugins('user')).toEqual([]);
   });
 
   it('refuses to edit malformed settings', async () => {
@@ -197,6 +210,7 @@ describe('init / doctor / uninstall end to end (temp home)', () => {
       ['backup-settings', 'done'],
       ['legacy-hook', 'done'],
       ['hooks', 'done'],
+      ['hook-runner', 'done'],
       ['import-legacy-log', 'done'],
       ['import-transcripts', 'done'],
     ]);
@@ -229,9 +243,13 @@ describe('init / doctor / uninstall end to end (temp home)', () => {
       ['config', 'ok'],
       ['event-log', 'ok'],
       ['hooks', 'ok'],
+      ['hook-owner', 'ok'],
       ['hook-target', 'ok'],
       ['legacy-hook', 'ok'],
     ]);
+    expect(await readFile(join(dir, 'cclens', 'hook-runner'), 'utf8')).toBe(
+      `${container.selfCommand}\n`,
+    );
 
     expect(await setup.uninstall()).toEqual({ removed: { user: 2, project: 0 } });
     const final = JSON.parse(
@@ -253,5 +271,68 @@ describe('init / doctor / uninstall end to end (temp home)', () => {
     const target = (await doctor.run()).find((r) => r.id === 'hook-target');
     expect(target?.status).toBe('fail');
     expect(target?.message).toContain('cli.js');
+  });
+
+  const enablePlugin = async (): Promise<void> => {
+    const file = join(dir, 'claude', 'settings.json');
+    const current = JSON.parse(await readFile(file, 'utf8')) as Record<string, unknown>;
+    await writeFile(
+      file,
+      JSON.stringify({ ...current, enabledPlugins: { 'cclens@cclens': true } }),
+    );
+  };
+  const statuses = async (doctor: DoctorService): Promise<Record<string, string>> =>
+    Object.fromEntries((await doctor.run()).map((r) => [r.id, r.status]));
+
+  it('plugin mode keeps cclens hooks out of settings.json and saves the runner', async () => {
+    const { setup, doctor } = buildServices(container);
+    await setup.init({ scope: 'user', backfill: false, migrateLegacy: false, dryRun: false });
+    await enablePlugin();
+    const both = await statuses(doctor);
+    expect(both['hooks']).toBe('ok');
+    expect(both['hook-owner']).toBe('warn');
+
+    const report = await setup.init({
+      scope: 'user',
+      hooks: 'plugin',
+      backfill: false,
+      migrateLegacy: false,
+      dryRun: false,
+    });
+    expect(report.steps.find((s) => s.id === 'hooks')?.status).toBe('done');
+    expect(JSON.stringify(await container.settings.listHooks('user'))).not.toContain(
+      'CCLENS_HOOK=1',
+    );
+    expect(await statuses(doctor)).toMatchObject({
+      hooks: 'ok',
+      'hook-owner': 'ok',
+      'hook-target': 'ok',
+    });
+    const again = await setup.init({
+      scope: 'user',
+      hooks: 'plugin',
+      backfill: false,
+      migrateLegacy: false,
+      dryRun: true,
+    });
+    expect(again.steps.filter((s) => s.status === 'skipped').map((s) => s.id)).toEqual([
+      'config',
+      'event-log',
+      'hooks',
+      'hook-runner',
+    ]);
+  });
+
+  it('doctor flags a plugin that has no saved runner', async () => {
+    const { doctor } = buildServices(container);
+    await enablePlugin();
+    const target = (await doctor.run()).find((r) => r.id === 'hook-target');
+    expect(target?.status).toBe('fail');
+    expect(target?.fix).toContain('cclens init --plugin');
+    await mkdir(join(dir, 'cclens'), { recursive: true });
+    await writeFile(join(dir, 'cclens', 'hook-runner'), `"${join(dir, 'gone.js')}"\n`);
+    const stale = (await doctor.run()).find((r) => r.id === 'hook-target');
+    expect(stale?.status).toBe('fail');
+    expect(stale?.message).toContain('gone.js');
   });
 });

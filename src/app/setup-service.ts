@@ -1,7 +1,7 @@
 import { isCclensHookCommand } from '../core/domain/hooks.js';
 import type { ClaudeSettingsManager, SettingsScope } from '../core/ports/claude-settings.js';
 import type { ConfigStore, Paths } from '../core/ports/infrastructure.js';
-import type { InstallStep } from '../core/ports/install.js';
+import type { HookRunnerStore, InstallStep } from '../core/ports/install.js';
 import type { UsageEventStore, UsageHistorySource } from '../core/ports/usage.js';
 import { InstallRunner, type InstallReport } from './install/install-runner.js';
 import {
@@ -11,11 +11,21 @@ import {
   ImportHistoryStep,
   RegisterHooksStep,
   RemoveLegacyHookStep,
+  RemoveSettingsHooksStep,
+  WriteHookRunnerStep,
 } from './install/steps.js';
 import type { UsageService } from './usage-service.js';
 
+/**
+ * Who registers the Claude Code hooks: cclens itself in settings.json, or the cclens
+ * plugin's `hooks/hooks.json`. Never both, so each skill use is recorded once (ADR 0006).
+ */
+export type HookOwner = 'settings' | 'plugin';
+
 export interface InitOptions {
   readonly scope: SettingsScope;
+  /** Defaults to `settings`. */
+  readonly hooks?: HookOwner;
   /** Import past skill uses from Claude Code transcripts. */
   readonly backfill: boolean;
   /** Import the old log and remove the old hook. */
@@ -28,6 +38,7 @@ export interface SetupDeps {
   readonly configStore: ConfigStore;
   readonly eventStore: UsageEventStore;
   readonly settings: ClaudeSettingsManager;
+  readonly hookRunner: HookRunnerStore;
   readonly usage: UsageService;
   readonly legacySource: UsageHistorySource;
   readonly transcriptSource: UsageHistorySource;
@@ -51,7 +62,12 @@ export class SetupService {
       new BackupSettingsStep(d.settings, options.scope),
     ];
     if (options.migrateLegacy) steps.push(new RemoveLegacyHookStep(d.settings, options.scope));
-    steps.push(new RegisterHooksStep(d.settings, options.scope, d.selfCommand));
+    steps.push(
+      options.hooks === 'plugin'
+        ? new RemoveSettingsHooksStep(d.settings, options.scope)
+        : new RegisterHooksStep(d.settings, options.scope, d.selfCommand),
+      new WriteHookRunnerStep(d.hookRunner, d.selfCommand),
+    );
     if (options.migrateLegacy) steps.push(new ImportHistoryStep(d.usage, d.legacySource));
     if (options.backfill) steps.push(new ImportHistoryStep(d.usage, d.transcriptSource));
     return steps;

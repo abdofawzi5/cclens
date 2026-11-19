@@ -7,6 +7,14 @@ export function isCclensHookCommand(command: string): boolean {
   return command.includes(CCLENS_HOOK_MARKER);
 }
 
+/** Name of the cclens Claude Code plugin (see `plugin/.claude-plugin/plugin.json`). */
+export const CCLENS_PLUGIN_NAME = 'cclens';
+
+/** True for an `enabledPlugins` key such as `cclens@cclens` or `cclens@my-marketplace`. */
+export function isCclensPluginKey(key: string): boolean {
+  return key === CCLENS_PLUGIN_NAME || key.startsWith(`${CCLENS_PLUGIN_NAME}@`);
+}
+
 /** Hooks from the manual pre-cclens setup (`~/.claude/hooks/log-skill-usage.sh`). */
 export function isLegacyHookCommand(command: string): boolean {
   return command.includes('log-skill-usage.sh');

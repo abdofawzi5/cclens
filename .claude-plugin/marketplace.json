@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "cclens",
+  "description": "Claude Code Lens: skill usage, token stats, session advice and skill search",
+  "owner": {
+    "name": "cclens maintainers"
+  },
+  "plugins": [
+    {
+      "name": "cclens",
+      "description": "Records which skills you use and lets Claude run the cclens CLI: skill inventory, usage, token stats, optimization advice and skill search.",
+      "source": "./plugin",
+      "category": "productivity",
+      "keywords": ["skills", "usage", "tokens", "analytics"]
+    }
+  ]
+}

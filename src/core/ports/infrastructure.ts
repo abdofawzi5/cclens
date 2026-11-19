@@ -47,6 +47,8 @@ export interface Paths {
   readonly cacheDir: string;
   readonly backupsDir: string;
   readonly hookErrorLog: string;
+  /** Command line that starts the cclens CLI, read by the plugin's hook script (ADR 0006). */
+  readonly hookRunnerFile: string;
   /** Claude Code config dir (`$CLAUDE_CONFIG_DIR` or `~/.claude`). */
   readonly claudeHome: string;
   readonly claudeProjectsDir: string;

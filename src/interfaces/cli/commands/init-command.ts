@@ -9,6 +9,7 @@ interface InitFlags {
   backfill: boolean;
   migrate: boolean;
   dryRun: boolean;
+  plugin: boolean;
 }
 
 /** `cclens init`: create data files, register hooks, import history. Safe to re-run. */
@@ -24,10 +25,16 @@ export class InitCommand implements CliCommand {
       )
       .option('--backfill', 'import past skill uses from Claude Code transcripts', false)
       .option('--no-migrate', 'leave the old skill-usage hook and log alone')
+      .option(
+        '--plugin',
+        'the cclens Claude Code plugin records skill uses: keep cclens hooks out of settings.json',
+        false,
+      )
       .option('--dry-run', 'show what would change without changing anything', false)
       .action(async (flags: InitFlags) => {
         const report = await ctx.services.setup.init({
           scope: flags.scope,
+          hooks: flags.plugin ? 'plugin' : 'settings',
           backfill: flags.backfill,
           migrateLegacy: flags.migrate,
           dryRun: flags.dryRun,

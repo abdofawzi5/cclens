@@ -10,7 +10,12 @@ import type {
   SettingsScope,
 } from '../../core/ports/claude-settings.js';
 import type { ConfigStore } from '../../core/ports/infrastructure.js';
-import type { InstallContext, InstallStep, StepOutcome } from '../../core/ports/install.js';
+import type {
+  HookRunnerStore,
+  InstallContext,
+  InstallStep,
+  StepOutcome,
+} from '../../core/ports/install.js';
 import type { UsageEventStore, UsageHistorySource } from '../../core/ports/usage.js';
 import type { UsageService } from '../usage-service.js';
 
@@ -101,6 +106,57 @@ export class RegisterHooksStep implements InstallStep {
   async undo(): Promise<void> {
     await this.settings.removeHooks(this.scope, isCclensHookCommand);
   }
+}
+
+/**
+ * Plugin mode: the cclens plugin registers the hooks, so any cclens hooks in settings.json
+ * are removed to keep each skill use recorded once.
+ */
+export class RemoveSettingsHooksStep implements InstallStep {
+  readonly id = 'hooks';
+  readonly title = 'Leave hooks to the cclens plugin';
+  constructor(
+    private readonly settings: ClaudeSettingsManager,
+    private readonly scope: SettingsScope,
+  ) {}
+
+  async execute(ctx: InstallContext): Promise<StepOutcome> {
+    const ours = (await this.settings.listHooks(this.scope)).filter((h) =>
+      isCclensHookCommand(h.command),
+    );
+    if (ours.length === 0) {
+      return { status: 'skipped', message: 'no cclens hooks in settings; the plugin records uses' };
+    }
+    if (ctx.dryRun) {
+      return { status: 'done', message: `would remove ${ours.length} cclens hooks from settings` };
+    }
+    const removed = await this.settings.removeHooks(this.scope, isCclensHookCommand);
+    return {
+      status: 'done',
+      message: `removed ${removed} cclens hooks from ${this.settings.settingsPath(this.scope)}; the plugin records uses`,
+    };
+  }
+  // Undo is covered by BackupSettingsStep restoring the whole file.
+}
+
+/** Saves how to start this CLI, so the plugin's hook script works without PATH (ADR 0006). */
+export class WriteHookRunnerStep implements InstallStep {
+  readonly id = 'hook-runner';
+  readonly title = 'Save the cclens command for the plugin';
+  constructor(
+    private readonly store: HookRunnerStore,
+    private readonly command: string,
+  ) {}
+
+  async execute(ctx: InstallContext): Promise<StepOutcome> {
+    if ((await this.store.read()) === this.command) {
+      return { status: 'skipped', message: `${this.store.path} is up to date` };
+    }
+    if (ctx.dryRun) return { status: 'done', message: `would write ${this.store.path}` };
+    await this.store.write(this.command);
+    return { status: 'done', message: `wrote ${this.store.path}` };
+  }
+  // No undo: the file only ever holds the command of the cclens that is running now.
 }
 
 /** Removes the manual pre-cclens hook so the same skill use is not logged twice. */

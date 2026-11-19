@@ -2,7 +2,7 @@
 
 **Claude Code Lens**: see which skills you have and which you actually use, where your tokens go, how to use fewer, and find new skills across the main registries, ranked by GitHub stars.
 
-> Status: Phases 1–4 done (install, capture, stats, review, search). Packaging for npm and the Claude Code plugin marketplace is next. See [docs/PLAN.md](docs/PLAN.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+> Status: Phases 1–5 done (install, capture, stats, review, search, packaging). See [docs/PLAN.md](docs/PLAN.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Install
 
@@ -19,7 +19,25 @@ cclens init --backfill
 4. replaces the old manual `log-skill-usage.sh` hook if you had one and imports its log;
 5. with `--backfill`, imports past skill uses from your Claude Code transcripts.
 
-Preview first with `cclens init --dry-run`. Register hooks for one project only with `--scope project`.
+Preview first with `cclens init --dry-run`. Register hooks for one project only with `--scope project`. Needs Node.js 20 or newer.
+
+### Or as a Claude Code plugin
+
+The repo is also a Claude Code plugin marketplace. The plugin registers the same hooks, adds a `/cclens` command, and a skill that lets Claude answer "which skills do I never use?" or "what did I spend this week?" by running cclens. Replace `OWNER` with the repo's GitHub owner:
+
+```
+/plugin marketplace add OWNER/cclens
+/plugin install cclens@cclens
+```
+
+The plugin runs the CLI, so install that too, then tell cclens the plugin owns the hooks:
+
+```bash
+npm install -g cclens
+cclens init --plugin
+```
+
+`--plugin` saves the absolute path of Node and cclens to `~/.cclens/hook-runner` (the desktop app doesn't load your shell's PATH) and keeps cclens hooks out of `settings.json`, so each skill use is recorded once. Use one setup or the other: if both are active, the plugin's hooks stand down and `cclens doctor` tells you how to keep one ([ADR 0006](docs/adr/0006-plugin-hook-runner.md)).
 
 ## Commands
 
@@ -31,7 +49,7 @@ Preview first with `cclens init --dry-run`. Register hooks for one project only 
 | `cclens review`         | Optimization advice from your own numbers. `--days 30`, `--session <id>` or `--last`, `--rule <id>`, `--list-rules`, `--ai`                                                        |
 | `cclens search <query>` | Search GitHub, SkillsMP and skills.sh at once, duplicates merged, ranked by stars. `--engine`, `--limit`, `--min-stars`, `--sort stars\|installs\|updated\|relevance`, `--refresh` |
 | `cclens engines`        | List search engines; `enable`, `disable`, `add <file.json>`, `remove`, `test [id]`                                                                                                 |
-| `cclens init`           | Set up or repair cclens                                                                                                                                                            |
+| `cclens init`           | Set up or repair cclens. `--plugin` when the Claude Code plugin records skill uses                                                                                                 |
 | `cclens doctor`         | Check the installation and say how to fix problems                                                                                                                                 |
 | `cclens uninstall`      | Remove the hooks; recorded data stays in `~/.cclens`                                                                                                                               |
 | `cclens paths`          | Show where cclens and Claude Code keep data                                                                                                                                        |
@@ -96,4 +114,15 @@ pnpm check        # typecheck, lint, format, tests
 pnpm coverage
 pnpm build && node dist/cli.js --help
 pnpm verify:apis  # live check of every external API cclens uses
+claude plugin validate .   # check the marketplace and plugin manifests
+```
+
+### Releasing
+
+Releases use [changesets](https://github.com/changesets/changesets). Add one with `pnpm changeset` in each pull request that changes behaviour, then:
+
+```bash
+pnpm version-packages   # bump package.json, write CHANGELOG.md, sync plugin.json
+npm publish --dry-run   # prepublishOnly runs pnpm check && pnpm build
+pnpm release            # changeset publish
 ```

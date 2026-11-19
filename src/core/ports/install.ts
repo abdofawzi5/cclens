@@ -29,6 +29,17 @@ export interface CheckResult {
   readonly fix?: string;
 }
 
+/**
+ * The file holding the command line that starts the cclens CLI. The Claude Code plugin's
+ * hook script reads it, because GUI apps do not give hooks the shell's PATH (ADR 0006).
+ */
+export interface HookRunnerStore {
+  readonly path: string;
+  /** The saved command line, or undefined when none was saved. */
+  read(): Promise<string | undefined>;
+  write(command: string): Promise<void>;
+}
+
 /** One `cclens doctor` check. */
 export interface HealthCheck {
   readonly id: string;

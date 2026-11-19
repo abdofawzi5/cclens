@@ -66,7 +66,8 @@ cclens/
 │  │  └─ render/                # TableRenderer, JsonRenderer, MarkdownRenderer
 │  └─ composition-root.ts       # the only place that does `new Adapter()`
 ├─ plugin/                      # Claude Code plugin: .claude-plugin/plugin.json,
-│                               # hooks/hooks.json, commands/cclens.md, skills/cclens/SKILL.md
+│                               # hooks/hooks.json + record-skill-use.sh (ADR 0006),
+│                               # commands/cclens.md, skills/cclens/SKILL.md
 ├─ .claude-plugin/marketplace.json
 ├─ test/ (unit/, contract/, fixtures/)
 └─ docs/ (PLAN.md, ARCHITECTURE.md, adr/)

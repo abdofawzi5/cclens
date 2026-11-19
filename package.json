@@ -4,6 +4,14 @@
   "description": "Claude Code Lens: skill inventory and usage, token stats, session optimization advice, and skill discovery across registries.",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OWNER/cclens.git"
+  },
+  "homepage": "https://github.com/OWNER/cclens#readme",
+  "bugs": {
+    "url": "https://github.com/OWNER/cclens/issues"
+  },
   "bin": {
     "cclens": "./dist/cli.js"
   },
@@ -22,6 +30,10 @@
   "engines": {
     "node": ">=20"
   },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "packageManager": "pnpm@12.5.1",
   "scripts": {
     "build": "tsup",
@@ -34,7 +46,11 @@
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test",
-    "verify:apis": "node scripts/verify-apis.mjs"
+    "verify:apis": "node scripts/verify-apis.mjs",
+    "changeset": "changeset",
+    "version-packages": "changeset version && node scripts/sync-plugin-version.mjs",
+    "prepublishOnly": "pnpm check && pnpm build",
+    "release": "changeset publish"
   },
   "keywords": [
     "claude",
