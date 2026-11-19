@@ -23,10 +23,10 @@ Preview first with `cclens init --dry-run`. Register hooks for one project only 
 
 ### Or as a Claude Code plugin
 
-The repo is also a Claude Code plugin marketplace. The plugin registers the same hooks, adds a `/cclens` command, and a skill that lets Claude answer "which skills do I never use?" or "what did I spend this week?" by running cclens. Replace `OWNER` with the repo's GitHub owner:
+The repo is also a Claude Code plugin marketplace. The plugin registers the same hooks, adds a `/cclens` command, and a skill that lets Claude answer "which skills do I never use?" or "what did I spend this week?" by running cclens:
 
 ```
-/plugin marketplace add OWNER/cclens
+/plugin marketplace add abdofawzi5/cclens
 /plugin install cclens@cclens
 ```
 

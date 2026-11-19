@@ -4,13 +4,14 @@
   "description": "Claude Code Lens: skill inventory and usage, token stats, session optimization advice, and skill discovery across registries.",
   "type": "module",
   "license": "MIT",
+  "author": "Abdelrahman Fawzi <abdofawzi5@gmail.com> (https://github.com/abdofawzi5)",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/OWNER/cclens.git"
+    "url": "git+https://github.com/abdofawzi5/cclens.git"
   },
-  "homepage": "https://github.com/OWNER/cclens#readme",
+  "homepage": "https://github.com/abdofawzi5/cclens#readme",
   "bugs": {
-    "url": "https://github.com/OWNER/cclens/issues"
+    "url": "https://github.com/abdofawzi5/cclens/issues"
   },
   "bin": {
     "cclens": "./dist/cli.js"

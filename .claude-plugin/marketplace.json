@@ -3,7 +3,8 @@
   "name": "cclens",
   "description": "Claude Code Lens: skill usage, token stats, session advice and skill search",
   "owner": {
-    "name": "cclens maintainers"
+    "name": "Abdelrahman Fawzi",
+    "email": "abdofawzi5@gmail.com"
   },
   "plugins": [
     {

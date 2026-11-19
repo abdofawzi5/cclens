@@ -2,6 +2,13 @@
   "name": "cclens",
   "version": "0.0.0",
   "description": "Claude Code Lens: records which skills you use, and lets Claude show your skill inventory, usage, token stats, optimization advice and skill search through the cclens CLI.",
+  "author": {
+    "name": "Abdelrahman Fawzi",
+    "email": "abdofawzi5@gmail.com",
+    "url": "https://github.com/abdofawzi5"
+  },
+  "homepage": "https://github.com/abdofawzi5/cclens#readme",
+  "repository": "https://github.com/abdofawzi5/cclens",
   "license": "MIT",
   "keywords": ["skills", "usage", "tokens", "cost", "analytics", "search"]
 }

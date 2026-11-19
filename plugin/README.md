@@ -6,13 +6,13 @@ Records each skill use for [cclens](../README.md) and teaches Claude to answer q
 - **`/cclens [args]`**: runs cclens; with no arguments it summarizes savings and unused skills.
 - **`cclens` skill**: lets Claude pick the right cclens command when you ask about skills, tokens or cost.
 
-Install it from this repo's marketplace (replace `OWNER` with the GitHub owner of the repo):
+Install it from this repo's marketplace:
 
 ```
-/plugin install cclens --marketplace OWNER/cclens
+/plugin install cclens --marketplace abdofawzi5/cclens
 ```
 
-On older Claude Code versions use `/plugin marketplace add OWNER/cclens`, then `/plugin install cclens@cclens`.
+On older Claude Code versions use `/plugin marketplace add abdofawzi5/cclens`, then `/plugin install cclens@cclens`.
 
 The plugin needs the CLI:
 
