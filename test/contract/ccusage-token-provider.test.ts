@@ -54,6 +54,8 @@ describe('CcusageTokenProvider (contract, recorded ccusage 20.0.51 output)', () 
     expect(rows[0]).toMatchObject({ period: '2026-11-18', models: ['claude-opus-5-5'] });
     expect(rows[0]?.counts.cacheRead).toBeGreaterThan(0);
     expect(rows[0]?.costUsd).toBeGreaterThan(0);
+    expect(rows[0]?.byModel?.[0]).toMatchObject({ model: 'claude-opus-5-5' });
+    expect(rows[0]?.byModel?.[0]?.costUsd).toBeCloseTo(rows[0]?.costUsd ?? 0);
   });
 
   it('maps weekly and monthly reports', async () => {
@@ -77,6 +79,7 @@ describe('CcusageTokenProvider (contract, recorded ccusage 20.0.51 output)', () 
       counts: { input: 1, output: 2, cacheCreation: 3, cacheRead: 4 },
       costUsd: 5,
       models: [],
+      byModel: [],
     });
     expect((await p.byPeriod('month'))[0]?.period).toBe('2026-11');
   });
@@ -88,6 +91,7 @@ describe('CcusageTokenProvider (contract, recorded ccusage 20.0.51 output)', () 
     const sessions = await p.bySession();
     expect(sessions.map((s) => s.sessionId)).toEqual(['sess-a', 'sess-b']);
     expect(sessions[0]?.firstActivity).toBeInstanceOf(Date);
+    expect(sessions[0]?.byModel?.[0]?.counts.cacheRead).toBeGreaterThan(0);
     const blocks = await p.blocks();
     expect(blocks.length).toBeGreaterThan(0);
     expect(blocks.at(-1)).toMatchObject({ isActive: true });

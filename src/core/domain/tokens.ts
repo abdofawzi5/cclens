@@ -25,6 +25,13 @@ export function addTokens(a: TokenCounts, b: TokenCounts): TokenCounts {
   };
 }
 
+/** Tokens and cost for one model inside a bucket or session. */
+export interface ModelUsage {
+  readonly model: string;
+  readonly counts: TokenCounts;
+  readonly costUsd: number;
+}
+
 export type Period = 'day' | 'week' | 'month';
 
 /** Tokens for one calendar period (a day, ISO week or month). */
@@ -35,6 +42,8 @@ export interface TokenBucket {
   /** Estimated cost in USD (API list prices, not your plan's billing). */
   readonly costUsd: number;
   readonly models: readonly string[];
+  /** Per-model split, when the provider reports it. */
+  readonly byModel?: readonly ModelUsage[];
 }
 
 export interface SessionTokens {
@@ -45,6 +54,7 @@ export interface SessionTokens {
   readonly counts: TokenCounts;
   readonly costUsd: number;
   readonly models: readonly string[];
+  readonly byModel?: readonly ModelUsage[];
 }
 
 /** A 5-hour billing window. */

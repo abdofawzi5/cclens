@@ -6,10 +6,13 @@ import { PluginTreeSource } from './adapters/claude/skills/plugin-tree-source.js
 import { SkillDirSource } from './adapters/claude/skills/skill-dir-source.js';
 import { CcusageTokenProvider } from './adapters/tokens/ccusage-token-provider.js';
 import { CompositeSkillSource } from './app/inventory/composite-skill-source.js';
+import type { AiReviewer, SessionActivitySource } from './core/ports/review.js';
 import type { SkillSource } from './core/ports/skills.js';
 import type { TokenUsageProvider } from './core/ports/tokens.js';
 import { LegacyLogSource } from './adapters/claude/history/legacy-log-source.js';
+import { TranscriptActivitySource } from './adapters/claude/history/transcript-activity-source.js';
 import { TranscriptSource } from './adapters/claude/history/transcript-source.js';
+import { ClaudeCliReviewer } from './adapters/claude/review/claude-cli-reviewer.js';
 import { JsonConfigStore } from './adapters/storage/json-config-store.js';
 import { JsonlEventStore } from './adapters/storage/jsonl-event-store.js';
 import { FileLogger } from './adapters/system/file-logger.js';
@@ -46,6 +49,10 @@ export interface Container {
   /** All installed skills: personal, project and plugin (Composite). */
   readonly skillSource: SkillSource;
   readonly tokens: TokenUsageProvider;
+  /** Per-session prompts and compactions from transcripts. */
+  readonly activitySource: SessionActivitySource;
+  /** Second-opinion reviewer behind `cclens review --ai` (headless Claude Code). */
+  readonly aiReviewer: AiReviewer;
   /** Shell command that starts this cclens CLI; written into Claude Code hooks. */
   readonly selfCommand: string;
   readonly nodeVersion: string;
@@ -112,11 +119,13 @@ export function createContainer(options: ContainerOptions = {}): Container {
   const paths = o.paths ?? resolvePaths(options.env);
   const clock = o.clock ?? new SystemClock();
   const logger = o.logger ?? new FileLogger(paths.hookErrorLog, options.verbose ?? false);
+  const env = options.env ?? process.env;
+  const runner = new NodeProcessRunner();
   return {
     paths,
     clock,
     logger,
-    processRunner: new NodeProcessRunner(),
+    processRunner: runner,
     files: new NodeFileProbe(),
     configStore: new JsonConfigStore(paths.configFile),
     eventStore: new JsonlEventStore(paths.eventsFile, logger),
@@ -137,9 +146,11 @@ export function createContainer(options: ContainerOptions = {}): Container {
       ),
       new PluginTreeSource(paths.pluginRoots),
     ]),
-    tokens: new CcusageTokenProvider(new NodeProcessRunner(), {
+    tokens: new CcusageTokenProvider(runner, {
       command: [process.execPath, ccusageCliPath()],
     }),
+    activitySource: new TranscriptActivitySource(paths.claudeProjectsDir, logger),
+    aiReviewer: new ClaudeCliReviewer(runner, { command: env['CCLENS_CLAUDE_BIN'] ?? 'claude' }),
     selfCommand: o.selfCommand ?? defaultSelfCommand(options.env),
     nodeVersion: process.version,
     ...o,

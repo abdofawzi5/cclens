@@ -2,7 +2,7 @@
 
 **Claude Code Lens**: see which skills you have and which you actually use, where your tokens go, how to use fewer, and find new skills across the main registries, ranked by GitHub stars.
 
-> Status: Phases 1–2 done (install, capture, stats). Session review and skill search are next. See [docs/PLAN.md](docs/PLAN.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+> Status: Phases 1–3 done (install, capture, stats, review). Skill search is next. See [docs/PLAN.md](docs/PLAN.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Install
 
@@ -28,6 +28,7 @@ Preview first with `cclens init --dry-run`. Register hooks for one project only 
 | `cclens skills`        | Installed skills with how often each was used. `--unused`, `--by-plugin`, `--plugin <name>`, `--scope personal\|project\|plugin`, `--since 30d`                  |
 | `cclens usage`         | Skill uses grouped `--by skill\|day\|project\|source`, with `--since`, `--until`, `--skill`, `--limit`                                                           |
 | `cclens tokens [view]` | Tokens and estimated cost: `daily` (default), `weekly`, `monthly`, `session`, `project`, `blocks` (5-hour windows). `--since`, `--until`, `--project`, `--limit` |
+| `cclens review`        | Optimization advice from your own numbers. `--days 30`, `--session <id>` or `--last`, `--rule <id>`, `--list-rules`, `--ai`                                      |
 | `cclens init`          | Set up or repair cclens                                                                                                                                          |
 | `cclens doctor`        | Check the installation and say how to fix problems                                                                                                               |
 | `cclens uninstall`     | Remove the hooks; recorded data stays in `~/.cclens`                                                                                                             |
@@ -47,7 +48,7 @@ Skills are found in `~/.claude/skills` (personal), `.claude/skills` (project), C
 
 ## Privacy
 
-Everything stays on your machine. Skill search (coming next) sends only your search text to the registries.
+Everything stays on your machine. `cclens review --ai` is the one exception you opt into: it runs `claude -p` with your own Claude login and sends aggregate numbers only (token totals, session sizes, rule findings), never your prompts or transcripts. Tools and MCP servers are turned off for that call and spending is capped at $0.50. Skill search (coming next) sends only your search text to the registries.
 
 ## Development
 

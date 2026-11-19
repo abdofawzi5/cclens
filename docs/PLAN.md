@@ -76,7 +76,7 @@ cclens doctor                                     # verify installation
 cclens skills [--source personal|project|plugin] [--unused 30d]
 cclens usage  [--since 2026-11-01] [--by skill|day|project]
 cclens tokens [daily|weekly|monthly|session|blocks] [--project X]
-cclens review [--session <id>|--last] [--ai]      # rule-based report; --ai adds Claude's review
+cclens review [--days 30] [--session <id>|--last] [--rule <id>...] [--ai] [--list-rules]
 cclens search <query> [--engine github,skillsmp] [--min-stars 50] [--sort stars|relevance]
 cclens engines list | enable <id> | disable <id> | add --from-file engine.json
 cclens ui                                         # phase 4
@@ -116,7 +116,7 @@ There are two supported paths, and both end in the same state.
 | **0. Foundations**          | Repo scaffold, tooling, CI, domain types, ports, composition root, config, error model. Verify the external APIs (ccusage exports, SkillsMP, skills.sh, GitHub) | `pnpm test` and CI are green; an ADR is recorded for each external integration                                             |
 | **1. Install and capture**  | `init` / `uninstall` / `doctor`, settings merger, `hook` command, event store, legacy-log migration, transcript backfill                                        | A fresh machine logs a skill use end to end; uninstall restores `settings.json` exactly                                    |
 | **2. Stats**                | `skills` (inventory sources), `usage`, `tokens` (ccusage adapter), renderers (table/json/markdown)                                                              | Numbers match a manual count on fixture data                                                                               |
-| **3. Review**               | Analyzer rules + recommendation engine; `--ai` reviewer through `claude -p`                                                                                     | Each rule has fixture tests; the report lists the estimated tokens each fix would save                                     |
+| **3. Review**               | Analyzer rules + recommendation engine; `--ai` reviewer through `claude -p`                                                                                     | Each rule has fixture tests; the report lists the estimated tokens each fix would save. Done 2026-11-19 (ADR 0005)         |
 | **4. Search**               | Engine port, GitHub / SkillsMP / skills.sh adapters, generic HTTP engine, aggregator (dedupe + star enrichment + ranking), cache, `engines` command             | Results from all enabled engines merge correctly; turning an engine off works; one engine failing doesn't break the others |
 | **5. Distribution**         | Plugin manifest + marketplace, README, docs, changesets, npm publish dry run                                                                                    | `npm pack` installs cleanly; plugin install works in a clean Claude Code                                                   |
 | **6. Dashboard** (optional) | `cclens ui`: local web UI over the same services                                                                                                                | Charts render from the same JSON the CLI produces                                                                          |

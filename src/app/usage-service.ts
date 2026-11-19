@@ -89,6 +89,13 @@ export class UsageService {
     return new Map([...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])));
   }
 
+  /** Time of the earliest recorded use, or undefined when nothing is recorded. */
+  async firstUse(): Promise<Date | undefined> {
+    let first: Date | undefined;
+    for await (const e of this.store.query()) if (!first || e.ts < first) first = e.ts;
+    return first;
+  }
+
   async total(filter?: UsageFilter): Promise<number> {
     let n = 0;
     for await (const event of this.store.query(filter)) if (event.skill) n += 1;

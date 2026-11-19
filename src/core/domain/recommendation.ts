@@ -7,8 +7,10 @@ export interface Recommendation {
   readonly severity: Severity;
   readonly title: string;
   readonly detail: string;
-  /** Rough tokens saved per reply (or per period, see `detail`) if acted on. */
+  /** Rough tokens saved if acted on; see `savingsBasis` for per what. */
   readonly estimatedTokenSavings?: number;
+  /** `per-request`: saved on every request. `window`: saved over the review window. */
+  readonly savingsBasis?: 'per-request' | 'window';
   /** Concrete next steps, e.g. commands to run. */
   readonly actions: readonly string[];
 }

@@ -1,6 +1,7 @@
 import type { Command } from 'commander';
 import type { ConfigService } from '../../app/config-service.js';
 import type { DoctorService } from '../../app/doctor-service.js';
+import type { ReviewService } from '../../app/review-service.js';
 import type { InventoryService } from '../../app/inventory/inventory-service.js';
 import type { SetupService } from '../../app/setup-service.js';
 import type { TokenService } from '../../app/token-service.js';
@@ -13,6 +14,7 @@ export interface Services {
   readonly usage: UsageService;
   readonly inventory: InventoryService;
   readonly tokens: TokenService;
+  readonly review: ReviewService;
   readonly setup: SetupService;
   readonly doctor: DoctorService;
 }

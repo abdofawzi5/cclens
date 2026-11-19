@@ -1,12 +1,12 @@
 import { createReadStream } from 'node:fs';
-import { readdir } from 'node:fs/promises';
-import { basename, join } from 'node:path';
+import { basename } from 'node:path';
 import { createInterface } from 'node:readline';
 import { z } from 'zod';
 import { extractTypedCommand } from '../../../core/domain/commands.js';
 import { USAGE_EVENT_VERSION, type UsageEvent } from '../../../core/domain/usage-event.js';
 import type { Logger } from '../../../core/ports/infrastructure.js';
 import type { UsageHistorySource } from '../../../core/ports/usage.js';
+import { walkJsonl } from './jsonl-files.js';
 
 const contentBlock = z.looseObject({
   type: z.string(),
@@ -31,20 +31,6 @@ type Line = z.infer<typeof transcriptLine>;
 /** Cheap pre-filter so only lines that can matter are JSON-parsed. */
 const MAY_MATTER = /"name":"Skill"|<command-name>/;
 
-async function* walkJsonl(dir: string): AsyncIterable<string> {
-  let entries;
-  try {
-    entries = await readdir(dir, { withFileTypes: true });
-  } catch {
-    return;
-  }
-  for (const entry of entries) {
-    const path = join(dir, entry.name);
-    if (entry.isDirectory()) yield* walkJsonl(path);
-    else if (entry.isFile() && entry.name.endsWith('.jsonl')) yield path;
-  }
-}
-
 function textOf(line: Line): string {
   const content = line.message?.content;
   if (typeof content === 'string') return content;
@@ -68,7 +54,7 @@ export class TranscriptSource implements UsageHistorySource {
 
   async *read(since?: Date): AsyncIterable<UsageEvent> {
     const seenToolUses = new Set<string>();
-    for await (const file of walkJsonl(this.projectsDir)) {
+    for await (const file of walkJsonl(this.projectsDir, since)) {
       const lines = createInterface({ input: createReadStream(file, 'utf8'), crlfDelay: Infinity });
       for await (const raw of lines) {
         if (!MAY_MATTER.test(raw)) continue;

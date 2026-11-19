@@ -2,16 +2,19 @@ import { Command } from 'commander';
 import { ConfigService } from '../../app/config-service.js';
 import { DoctorService } from '../../app/doctor-service.js';
 import { InventoryService } from '../../app/inventory/inventory-service.js';
+import { ReviewService } from '../../app/review-service.js';
 import { SetupService } from '../../app/setup-service.js';
 import { TokenService } from '../../app/token-service.js';
 import { UsageService } from '../../app/usage-service.js';
 import type { Container } from '../../composition-root.js';
+import { defaultRules } from '../../core/rules/index.js';
 import { JsonRenderer } from '../render/json-renderer.js';
 import type { CliCommand, CommandContext, Services } from './command.js';
 import { ConfigCommand } from './commands/config-command.js';
 import { DoctorCommand } from './commands/doctor-command.js';
 import { HookCommand } from './commands/hook-command.js';
 import { InitCommand } from './commands/init-command.js';
+import { ReviewCommand } from './commands/review-command.js';
 import { PathsCommand } from './commands/paths-command.js';
 import { SkillsCommand } from './commands/skills-command.js';
 import { TokensCommand } from './commands/tokens-command.js';
@@ -23,6 +26,7 @@ const COMMANDS: readonly CliCommand[] = [
   new SkillsCommand(),
   new UsageCommand(),
   new TokensCommand(),
+  new ReviewCommand(),
   new InitCommand(),
   new DoctorCommand(),
   new UninstallCommand(),
@@ -33,11 +37,22 @@ const COMMANDS: readonly CliCommand[] = [
 
 export function buildServices(c: Container): Services {
   const usage = new UsageService(c.eventStore, c.clock);
+  const config = new ConfigService(c.configStore);
   return {
-    config: new ConfigService(c.configStore),
+    config,
     usage,
     inventory: new InventoryService(c.skillSource, usage),
     tokens: new TokenService(c.tokens),
+    review: new ReviewService({
+      config,
+      skills: c.skillSource,
+      usage,
+      tokens: c.tokens,
+      activity: c.activitySource,
+      clock: c.clock,
+      rules: defaultRules(),
+      ai: c.aiReviewer,
+    }),
     setup: new SetupService({
       paths: c.paths,
       configStore: c.configStore,

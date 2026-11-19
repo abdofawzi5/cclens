@@ -1,0 +1,21 @@
+{
+  "duration_api_ms": 4200,
+  "stop_reason": "end_turn",
+  "session_id": "00000000-0000-0000-0000-000000000003",
+  "total_cost_usd": 0.012,
+  "usage": {
+    "input_tokens": 1800,
+    "output_tokens": 240,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0
+  },
+  "modelUsage": {},
+  "permission_denials": [],
+  "is_error": false,
+  "num_turns": 1,
+  "subtype": "success",
+  "result": "```json\n[{\"severity\":\"warn\",\"title\":\"Two projects account for most spend\",\"detail\":\"Most cost comes from two projects.\",\"actions\":[\"Review CLAUDE.md size in those projects\"]},{\"severity\":\"info\",\"title\":\"Short sessions are cheap\",\"detail\":\"Keep doing them.\"}]\n```",
+  "type": "result",
+  "duration_ms": 4300,
+  "uuid": "00000000-0000-0000-0000-000000000004"
+}

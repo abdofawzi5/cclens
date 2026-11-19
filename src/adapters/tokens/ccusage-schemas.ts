@@ -8,6 +8,18 @@ const counts = {
   cacheReadTokens: z.number(),
   totalCost: z.number(),
   modelsUsed: z.array(z.string()).default([]),
+  modelBreakdowns: z
+    .array(
+      z.looseObject({
+        modelName: z.string(),
+        inputTokens: z.number(),
+        outputTokens: z.number(),
+        cacheCreationTokens: z.number(),
+        cacheReadTokens: z.number(),
+        cost: z.number(),
+      }),
+    )
+    .default([]),
 };
 
 export const dailyReport = z.object({
@@ -55,6 +67,8 @@ export const blocksReport = z.object({
     }),
   ),
 });
+
+export type ModelBreakdownRow = CountsRow & { modelName: string; cost: number };
 
 export type CountsRow = {
   inputTokens: number;

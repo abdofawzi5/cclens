@@ -195,14 +195,16 @@ interface Renderer<T> {
 
 ### First rule set
 
-| Rule                          | Fires when                                       | Suggests                                                             |
-| ----------------------------- | ------------------------------------------------ | -------------------------------------------------------------------- |
-| `unused-skills`               | Skill/plugin unused for ≥ 30 days                | Uninstall or disable the plugin; shows the tokens it costs per reply |
-| `heavy-mcp-overhead`          | MCP tool definitions take > 10K tokens           | Disable connectors not used in the period                            |
-| `long-sessions`               | Cache reads grow past a threshold in one session | Start new sessions per task, use `/clear` or `/compact`              |
-| `expensive-model-for-routine` | Scheduled or repeated tasks run on the top model | Use Sonnet or Haiku, or lower effort                                 |
-| `near-plan-limit`             | Weekly window ≥ 80%                              | Pace work and point to the heaviest projects                         |
-| `frequent-compaction`         | Many auto-compacts in a session                  | Split the work into several sessions                                 |
+| Rule                  | Fires when                                             | Suggests                                                       |
+| --------------------- | ------------------------------------------------------ | -------------------------------------------------------------- |
+| `unused-skills`       | Plugins or skills with no recorded use in the window   | Disable them; shows how many listing tokens they add           |
+| `long-sessions`       | A session re-reads more than 20M cached tokens         | One session per task, `/clear`, focused `/compact`             |
+| `frequent-compaction` | 2 or more auto-compactions in one session              | Split the work; compact manually at natural breaks             |
+| `cache-churn`         | Cache writes are over 10% of cached tokens             | Avoid long pauses, model switches and config edits mid-session |
+| `model-mix`           | 80% or more of estimated cost is on the top model tier | Use Sonnet for routine work, lower effort                      |
+| `usage-spikes`        | A day uses 3× or more of the median day                | Look at the session behind it                                  |
+
+`near-plan-limit` and `heavy-mcp-overhead` wait until cclens can read plan limits and MCP context size (ADR 0005). Rules run per scope: the whole window, or one session (`--session`, `--last`).
 
 ## Data and config
 

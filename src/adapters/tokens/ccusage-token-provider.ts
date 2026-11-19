@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 import type {
+  ModelUsage,
   Period,
   ProjectTokens,
   SessionTokens,
@@ -20,6 +21,7 @@ import {
   sessionReport,
   weeklyReport,
   type CountsRow,
+  type ModelBreakdownRow,
 } from './ccusage-schemas.js';
 
 const toCounts = (r: CountsRow): TokenCounts => ({
@@ -28,6 +30,9 @@ const toCounts = (r: CountsRow): TokenCounts => ({
   cacheCreation: r.cacheCreationTokens,
   cacheRead: r.cacheReadTokens,
 });
+
+const toModels = (rows: readonly ModelBreakdownRow[]): readonly ModelUsage[] =>
+  rows.map((m) => ({ model: m.modelName, counts: toCounts(m), costUsd: m.cost }));
 
 const ymd = (d: Date): string =>
   `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
@@ -71,6 +76,7 @@ export class CcusageTokenProvider implements TokenUsageProvider {
       counts: toCounts(s),
       costUsd: s.totalCost,
       models: s.modelsUsed,
+      byModel: toModels(s.modelBreakdowns),
     }));
   }
 
@@ -107,9 +113,19 @@ export class CcusageTokenProvider implements TokenUsageProvider {
 
   private bucket(
     period: string,
-    row: CountsRow & { totalCost: number; modelsUsed: string[] },
+    row: CountsRow & {
+      totalCost: number;
+      modelsUsed: string[];
+      modelBreakdowns: ModelBreakdownRow[];
+    },
   ): TokenBucket {
-    return { period, counts: toCounts(row), costUsd: row.totalCost, models: row.modelsUsed };
+    return {
+      period,
+      counts: toCounts(row),
+      costUsd: row.totalCost,
+      models: row.modelsUsed,
+      byModel: toModels(row.modelBreakdowns),
+    };
   }
 
   private async run<S extends z.ZodType>(
