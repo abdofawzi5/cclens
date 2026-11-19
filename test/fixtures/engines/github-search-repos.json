@@ -1,0 +1,67 @@
+{
+  "total_count": 1756,
+  "incomplete_results": false,
+  "items": [
+    {
+      "full_name": "coreyhaines31/marketingskills",
+      "name": "marketingskills",
+      "owner": {
+        "login": "coreyhaines31"
+      },
+      "html_url": "https://github.com/coreyhaines31/marketingskills",
+      "description": "Marketing skills for Claude Code and AI agents. CRO, copywriting, SEO, analytics, and growth engineering.",
+      "stargazers_count": 61438,
+      "topics": [
+        "agent-skills",
+        "ai-agents",
+        "ai-seo",
+        "claude",
+        "claude-code",
+        "claude-code-plugin",
+        "claude-skills",
+        "codex",
+        "content-marketing",
+        "conversion-rate-optimization",
+        "copywriting",
+        "cursor",
+        "email-marketing",
+        "generative-engine-optimization",
+        "growth-marketing",
+        "marketing",
+        "marketing-automation",
+        "saas-marketing",
+        "seo",
+        "skill-md"
+      ],
+      "pushed_at": "2026-11-18T18:11:26Z",
+      "archived": false,
+      "license": {
+        "spdx_id": "MIT"
+      }
+    },
+    {
+      "full_name": "AgriciDaniel/claude-seo",
+      "name": "claude-seo",
+      "owner": {
+        "login": "AgriciDaniel"
+      },
+      "html_url": "https://github.com/AgriciDaniel/claude-seo",
+      "description": "Universal SEO skill for Claude Code. 26 sub-skills + 19 sub-agents covering technical SEO, E-E-A-T, schema, GEO/AEO, agent readiness (Lighthouse Agentic Browsing, WebMCP, llms.txt), backlinks, local SEO, e-commerce, international SEO, Google APIs, and PDF/Excel reporting. 9 optional extensions for live SEO data.",
+      "stargazers_count": 30851,
+      "topics": [
+        "ai",
+        "ai-seo",
+        "claude-code",
+        "claude-code-skill",
+        "marketing-automation",
+        "open-source",
+        "seo"
+      ],
+      "pushed_at": "2026-11-16T06:16:01Z",
+      "archived": false,
+      "license": {
+        "spdx_id": "MIT"
+      }
+    }
+  ]
+}

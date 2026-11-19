@@ -1,0 +1,21 @@
+{
+  "query": "seo",
+  "searchType": "fuzzy",
+  "skills": [
+    {
+      "id": "coreyhaines31/marketingskills/seo-audit",
+      "source": "coreyhaines31/marketingskills",
+      "skillId": "seo-audit",
+      "name": "seo-audit",
+      "installs": 259529
+    },
+    {
+      "id": "coreyhaines31/marketingskills/ai-seo",
+      "source": "coreyhaines31/marketingskills",
+      "skillId": "ai-seo",
+      "name": "ai-seo",
+      "installs": 168678
+    }
+  ],
+  "count": 2
+}

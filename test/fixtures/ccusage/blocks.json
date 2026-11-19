@@ -1,0 +1,52 @@
+{
+  "blocks": [
+    {
+      "actualEndTime": "2026-11-19T12:02:29.582Z",
+      "burnRate": null,
+      "costUSD": 17.639181600000004,
+      "endTime": "2026-11-19T13:00:00.000Z",
+      "entries": 239,
+      "id": "2026-11-19T08:00:00.000Z",
+      "isActive": false,
+      "isGap": false,
+      "models": ["claude-opus-5-5"],
+      "projection": null,
+      "startTime": "2026-11-19T08:00:00.000Z",
+      "tokenCounts": {
+        "cacheCreationInputTokens": 505060,
+        "cacheReadInputTokens": 53727408,
+        "inputTokens": 530,
+        "outputTokens": 142555
+      },
+      "totalTokens": 54375553
+    },
+    {
+      "actualEndTime": "2026-11-19T16:08:22.552Z",
+      "burnRate": {
+        "costPerHour": 3.665922450818857,
+        "tokensPerMinute": 94047.87937430147,
+        "tokensPerMinuteForIndicator": 460.803630637144
+      },
+      "costUSD": 4.695865399999999,
+      "endTime": "2026-11-19T19:00:00.000Z",
+      "entries": 46,
+      "id": "2026-11-19T14:00:00.000Z",
+      "isActive": true,
+      "isGap": false,
+      "models": ["claude-opus-5-5"],
+      "projection": {
+        "remainingMinutes": 172,
+        "totalCost": 15.2,
+        "totalTokens": 23404476
+      },
+      "startTime": "2026-11-19T14:00:00.000Z",
+      "tokenCounts": {
+        "cacheCreationInputTokens": 327018,
+        "cacheReadInputTokens": 6865807,
+        "inputTokens": 110,
+        "outputTokens": 35306
+      },
+      "totalTokens": 7228241
+    }
+  ]
+}
