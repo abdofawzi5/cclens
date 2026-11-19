@@ -1,6 +1,6 @@
 ---
 name: cclens
-description: Answer questions about the user's Claude Code skills, skill usage, token spend and cost, and how to use fewer tokens, which subagents they use and what those cost, chart or report their usage, or find new skills, by running the cclens CLI. Use when the user asks which skills they have or use, which skills are unused, how many tokens or dollars Claude Code used (per day, week, month, session, project or 5-hour block), how to cut token use, or to search registries for a skill.
+description: Answer questions about the user's Claude Code skills, skill usage, token spend and cost, and how to use fewer tokens, which subagents they use and what those cost, what their scheduled tasks cost, chart or report their usage, or find new skills, by running the cclens CLI. Use when the user asks which skills they have or use, which skills are unused, how many tokens or dollars Claude Code used (per day, week, month, session, project or 5-hour block), how to cut token use, or to search registries for a skill.
 ---
 
 # cclens
@@ -25,6 +25,7 @@ cclens reads Claude Code's own data on this machine and answers from it. Run it 
 | How to use fewer tokens                                | `cclens review --days 30` (`--last`, or `--session <id or title>`)   |
 | A skill for some task                                  | `cclens search <words>` (`--min-stars 50`, `--sort stars\|installs`) |
 | Subagents: which run, what they cost, which are unused | `cclens agents` (`--by session`, `--unused`, `--since 30d`)          |
+| Scheduled or repeated tasks and what they cost a month | `cclens jobs` (`--job <name>` for one job's runs, `--since 30d`)     |
 | A report, a chart or a usage overview                  | see "Charts and reports" below                                       |
 | Whether recording works                                | `cclens doctor`                                                      |
 

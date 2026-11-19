@@ -67,7 +67,7 @@ describe('review command', () => {
     expect(out).toMatch(/WARN 1 installed skills unused in 30 days|INFO 1 installed skills unused/);
     expect(out).toContain('saves up to ~');
     expect(out).toContain('→ Split long work into one session per task');
-    expect(out).toContain('8 rules checked · add --ai');
+    expect(out).toContain('9 rules checked · add --ai');
   });
 
   it('reviews one session and adds AI suggestions', async () => {

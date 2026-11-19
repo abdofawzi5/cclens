@@ -3,6 +3,7 @@ import { AgentService } from '../../app/agent-service.js';
 import { ConfigService } from '../../app/config-service.js';
 import { DoctorService } from '../../app/doctor-service.js';
 import { InventoryService } from '../../app/inventory/inventory-service.js';
+import { JobService } from '../../app/job-service.js';
 import { ReportService } from '../../app/report-service.js';
 import { ReviewService } from '../../app/review-service.js';
 import { EngineService } from '../../app/search/engine-service.js';
@@ -19,6 +20,7 @@ import { ConfigCommand } from './commands/config-command.js';
 import { DoctorCommand } from './commands/doctor-command.js';
 import { HookCommand } from './commands/hook-command.js';
 import { InitCommand } from './commands/init-command.js';
+import { JobsCommand } from './commands/jobs-command.js';
 import { ReportCommand } from './commands/report-command.js';
 import { ReviewCommand } from './commands/review-command.js';
 import { EnginesCommand } from './commands/engines-command.js';
@@ -37,6 +39,7 @@ const COMMANDS: readonly CliCommand[] = [
   new ReviewCommand(),
   new ReportCommand(),
   new AgentsCommand(),
+  new JobsCommand(),
   new SearchCommand(),
   new EnginesCommand(),
   new InitCommand(),
@@ -86,6 +89,7 @@ export function buildServices(c: Container): Services {
       prices: c.prices,
       sessions: c.activitySource,
     }),
+    jobs: new JobService(c.tokens, c.activitySource, c.clock),
     setup: new SetupService({
       paths: c.paths,
       configStore: c.configStore,

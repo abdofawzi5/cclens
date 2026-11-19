@@ -16,3 +16,8 @@ export function percent(fraction: number): string {
 export function localDay(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
+
+/** `12.3456` → `$12.35`. */
+export function usd(n: number): string {
+  return `$${n.toFixed(2)}`;
+}

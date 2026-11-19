@@ -154,7 +154,28 @@ describe('TranscriptActivitySource', () => {
       sessionId: 'sched',
       prompts: 0,
       title: { text: 'Daily episode', source: 'custom' },
+      scheduledTask: 'scheduled task',
     });
+  });
+
+  it('keeps the scheduled task name from the trigger, only the first one', async () => {
+    const trigger = (uuid: string, min: number, name: string, asBlocks = false) => {
+      const text = `<scheduled-task name="${name}" file="/x/${name}/SKILL.md">\nSecret steps\n</scheduled-task>`;
+      return prompt(uuid, min, {
+        sessionId: 'sched',
+        origin: { kind: 'task-notification', subkind: 'scheduled-trigger' },
+        message: { content: asBlocks ? [{ type: 'text', text }] : text },
+      });
+    };
+    await write('-p/sched.jsonl', [
+      trigger('t1', 1, 'daily-bedtime', true),
+      trigger('t2', 2, 'other-task'),
+      prompt('u3', 3, { sessionId: 'sched' }),
+    ]);
+    const [s] = await new TranscriptActivitySource(dir).read();
+    expect(s?.scheduledTask).toBe('daily-bedtime');
+    expect(s?.prompts).toBe(1);
+    expect(JSON.stringify(s)).not.toContain('Secret steps');
   });
 
   it('returns nothing for a missing folder', async () => {

@@ -4,6 +4,7 @@ import { CacheChurnRule } from './cache-churn.js';
 import { FrequentCompactionRule } from './frequent-compaction.js';
 import { LongSessionsRule } from './long-sessions.js';
 import { ModelMixRule } from './model-mix.js';
+import { RecurringCostRule } from './recurring-cost.js';
 import { UnusedSkillsRule } from './unused-skills.js';
 import { UsageSpikesRule } from './usage-spikes.js';
 
@@ -13,6 +14,7 @@ export { CacheChurnRule } from './cache-churn.js';
 export { FrequentCompactionRule } from './frequent-compaction.js';
 export { LongSessionsRule } from './long-sessions.js';
 export { ModelMixRule } from './model-mix.js';
+export { RecurringCostRule } from './recurring-cost.js';
 export { skillGroups, skillListingTokens, UnusedSkillsRule } from './unused-skills.js';
 export { UsageSpikesRule } from './usage-spikes.js';
 
@@ -27,5 +29,6 @@ export function defaultRules(): readonly OptimizationRule[] {
     new UsageSpikesRule(),
     new UnusedAgentsRule(),
     new ExpensiveAgentsRule(),
+    new RecurringCostRule(),
   ];
 }

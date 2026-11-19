@@ -17,7 +17,7 @@ const line = z.looseObject({
   isSidechain: z.boolean().optional(),
   isMeta: z.boolean().optional(),
   isCompactSummary: z.boolean().optional(),
-  origin: z.looseObject({ kind: z.string() }).optional(),
+  origin: z.looseObject({ kind: z.string(), subkind: z.string().optional() }).optional(),
   message: z.looseObject({ content: z.unknown() }).optional(),
   compactMetadata: z
     .looseObject({ trigger: z.string().optional(), preTokens: z.number().optional() })
@@ -49,6 +49,8 @@ interface Tally {
   auto: number;
   manual: number;
   peak?: number;
+  /** Name of the scheduled task that started this session, if any. */
+  scheduledTask?: string;
   /** Start of the earliest typed prompt; the fallback title. */
   firstPrompt?: { text: string; at: Date };
 }
@@ -59,6 +61,23 @@ function isHumanPrompt(l: Line): boolean {
   if (l.origin) return l.origin.kind === 'human';
   const content = l.message?.content;
   return typeof content === 'string' && !content.startsWith('<');
+}
+
+/** `<scheduled-task name="daily-report" …>` → `daily-report`. Only the name is kept. */
+function scheduledTaskName(l: Line): string {
+  const content = l.message?.content;
+  const text =
+    typeof content === 'string'
+      ? content
+      : Array.isArray(content)
+        ? (content as unknown[])
+            .map((b) => {
+              const parsed = textBlock.safeParse(b);
+              return parsed.success ? parsed.data.text : '';
+            })
+            .join('')
+        : '';
+  return /<scheduled-task\b[^>]*\bname="([^"]{1,200})"/.exec(text)?.[1] ?? 'scheduled task';
 }
 
 /** The visible text of a prompt; a slash command becomes `/name args`. */
@@ -129,6 +148,9 @@ export class TranscriptActivitySource implements SessionActivitySource {
         if (!isCompaction && !isUserTurn) continue;
 
         const t = this.tally(sessions, l.sessionId, project, ts);
+        if (!isCompaction && l.origin?.subkind === 'scheduled-trigger') {
+          t.scheduledTask ??= scheduledTaskName(l);
+        }
         // Scheduled runs start from a trigger, not a typed prompt: register the session, count nothing.
         if (!isCompaction && !isHumanPrompt(l)) continue;
         if (isCompaction) {
@@ -162,6 +184,7 @@ export class TranscriptActivitySource implements SessionActivitySource {
         manualCompactions: t.manual,
         ...(t.peak === undefined ? {} : { peakContextTokens: t.peak }),
         ...(title ? { title } : {}),
+        ...(t.scheduledTask ? { scheduledTask: t.scheduledTask } : {}),
       };
     });
   }

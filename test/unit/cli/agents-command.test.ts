@@ -102,6 +102,6 @@ describe('agents command', () => {
   it('feeds review: installed agents and runs reach the agent rules', async () => {
     const out = await run(['review']);
     expect(out).toContain('1 installed agents unused in 30 days');
-    expect(out).toContain('8 rules checked');
+    expect(out).toContain('9 rules checked');
   });
 });

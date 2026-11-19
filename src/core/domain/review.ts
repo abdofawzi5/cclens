@@ -19,6 +19,8 @@ export interface SessionActivity {
   readonly peakContextTokens?: number;
   /** The session's name, when the transcript gives one. */
   readonly title?: SessionTitle;
+  /** Set when a scheduled task started the session: the task's name. */
+  readonly scheduledTask?: string;
 }
 
 /** A review covers either every session in a window, or one session. */

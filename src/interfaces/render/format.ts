@@ -1,8 +1,4 @@
-export { compact, percent } from '../../core/util/format.js';
-
-export function usd(n: number): string {
-  return `$${n.toFixed(2)}`;
-}
+export { compact, percent, usd } from '../../core/util/format.js';
 
 /** `-Users-me-Workspace-site` → `Workspace-site` (drops the encoded home prefix). */
 export function shortProject(encoded: string, home?: string): string {
