@@ -14,6 +14,10 @@ export class ConfigService {
     return this.store.load();
   }
 
+  save(config: CclensConfig): Promise<void> {
+    return this.store.save(config);
+  }
+
   async engines(): Promise<readonly EngineConfig[]> {
     return (await this.store.load()).engines;
   }

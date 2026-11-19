@@ -38,6 +38,8 @@ export interface SearchQuery {
 }
 
 export interface SearchResult {
+  /** `skill`: one skill. `repo`: a repository that may hold several skills. */
+  readonly kind: 'skill' | 'repo';
   /** Engines that returned this result (several after merging). */
   readonly engineIds: readonly string[];
   readonly name: string;
@@ -50,17 +52,32 @@ export interface SearchResult {
   readonly installs?: number;
   readonly updatedAt?: Date;
   readonly author?: string;
-  /** Engine-specific relevance in [0, 1], when available. */
+  /** Language of the description (e.g. `en`), when the engine reports it. */
+  readonly language?: string;
+  /** Relevance in [0, 1] from the engine's own order (1 = its first result). */
   readonly relevance?: number;
+  readonly archived?: boolean;
+  /** A skill with this name is already installed locally. */
+  readonly installed?: boolean;
 }
 
 /** Per-engine outcome, so one failing engine never hides the others' results. */
 export type EngineOutcome =
-  | { readonly engineId: string; readonly ok: true; readonly count: number; readonly ms: number }
+  | {
+      readonly engineId: string;
+      readonly ok: true;
+      readonly count: number;
+      readonly ms: number;
+      readonly cached: boolean;
+    }
   | { readonly engineId: string; readonly ok: false; readonly error: string; readonly ms: number };
 
 export interface SearchReport {
   readonly query: SearchQuery;
   readonly results: readonly SearchResult[];
   readonly outcomes: readonly EngineOutcome[];
+  /** Results found before the limit and filters were applied. */
+  readonly totalFound: number;
+  /** Partial failures that did not stop the search (for example star enrichment). */
+  readonly notes: readonly string[];
 }

@@ -1,3 +1,4 @@
+import type { EngineConfig } from '../config/schema.js';
 import type {
   EngineDescriptor,
   RepoMeta,
@@ -21,4 +22,11 @@ export interface RepoMetadataProvider {
 export interface RankingStrategy {
   readonly id: string;
   rank(results: readonly SearchResult[], query: SearchQuery): readonly SearchResult[];
+}
+
+/** Builds a search engine from its config entry (Factory). */
+export interface EngineFactory {
+  /** Engine types this factory can build, e.g. `github`, `generic-http`. */
+  readonly types: readonly string[];
+  create(config: EngineConfig): SkillSearchEngine;
 }

@@ -2,7 +2,7 @@
 
 **Claude Code Lens**: see which skills you have and which you actually use, where your tokens go, how to use fewer, and find new skills across the main registries, ranked by GitHub stars.
 
-> Status: Phases 1–3 done (install, capture, stats, review). Skill search is next. See [docs/PLAN.md](docs/PLAN.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+> Status: Phases 1–4 done (install, capture, stats, review, search). Packaging for npm and the Claude Code plugin marketplace is next. See [docs/PLAN.md](docs/PLAN.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Install
 
@@ -23,17 +23,19 @@ Preview first with `cclens init --dry-run`. Register hooks for one project only 
 
 ## Commands
 
-| Command                | What it does                                                                                                                                                     |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `cclens skills`        | Installed skills with how often each was used. `--unused`, `--by-plugin`, `--plugin <name>`, `--scope personal\|project\|plugin`, `--since 30d`                  |
-| `cclens usage`         | Skill uses grouped `--by skill\|day\|project\|source`, with `--since`, `--until`, `--skill`, `--limit`                                                           |
-| `cclens tokens [view]` | Tokens and estimated cost: `daily` (default), `weekly`, `monthly`, `session`, `project`, `blocks` (5-hour windows). `--since`, `--until`, `--project`, `--limit` |
-| `cclens review`        | Optimization advice from your own numbers. `--days 30`, `--session <id>` or `--last`, `--rule <id>`, `--list-rules`, `--ai`                                      |
-| `cclens init`          | Set up or repair cclens                                                                                                                                          |
-| `cclens doctor`        | Check the installation and say how to fix problems                                                                                                               |
-| `cclens uninstall`     | Remove the hooks; recorded data stays in `~/.cclens`                                                                                                             |
-| `cclens paths`         | Show where cclens and Claude Code keep data                                                                                                                      |
-| `cclens config show`   | Show the effective configuration                                                                                                                                 |
+| Command                 | What it does                                                                                                                                                                       |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cclens skills`         | Installed skills with how often each was used. `--unused`, `--by-plugin`, `--plugin <name>`, `--scope personal\|project\|plugin`, `--since 30d`                                    |
+| `cclens usage`          | Skill uses grouped `--by skill\|day\|project\|source`, with `--since`, `--until`, `--skill`, `--limit`                                                                             |
+| `cclens tokens [view]`  | Tokens and estimated cost: `daily` (default), `weekly`, `monthly`, `session`, `project`, `blocks` (5-hour windows). `--since`, `--until`, `--project`, `--limit`                   |
+| `cclens review`         | Optimization advice from your own numbers. `--days 30`, `--session <id>` or `--last`, `--rule <id>`, `--list-rules`, `--ai`                                                        |
+| `cclens search <query>` | Search GitHub, SkillsMP and skills.sh at once, duplicates merged, ranked by stars. `--engine`, `--limit`, `--min-stars`, `--sort stars\|installs\|updated\|relevance`, `--refresh` |
+| `cclens engines`        | List search engines; `enable`, `disable`, `add <file.json>`, `remove`, `test [id]`                                                                                                 |
+| `cclens init`           | Set up or repair cclens                                                                                                                                                            |
+| `cclens doctor`         | Check the installation and say how to fix problems                                                                                                                                 |
+| `cclens uninstall`      | Remove the hooks; recorded data stays in `~/.cclens`                                                                                                                               |
+| `cclens paths`          | Show where cclens and Claude Code keep data                                                                                                                                        |
+| `cclens config show`    | Show the effective configuration                                                                                                                                                   |
 
 Every command accepts `--json`. Dates accept `YYYY-MM-DD`, `YYYYMMDD` or relative values like `7d`, `4w`, `3m`.
 
@@ -46,9 +48,45 @@ Skills are found in `~/.claude/skills` (personal), `.claude/skills` (project), C
 - The hook takes about 100 ms, never prints anything, and always exits 0. Problems go to `~/.cclens/hook-errors.log`.
 - Hooks call Node and cclens by absolute path, so they work in the Claude desktop app, which doesn't load your shell's PATH. If you move cclens or switch Node versions, run `cclens init` again; `cclens doctor` tells you when.
 
+## Skill search
+
+`cclens search seo audit` asks every enabled engine in parallel, merges results that point at the same skill, adds GitHub stars where an engine has none, and ranks results that mention more of your words first, then by stars. Results are marked when you already have a skill with the same name. One engine failing never stops the others.
+
+| Engine   | Searches                             | Notes                                                           |
+| -------- | ------------------------------------ | --------------------------------------------------------------- |
+| github   | GitHub repositories (`claude skill`) | Uses `GITHUB_TOKEN` or your `gh` login for a higher rate limit  |
+| skillsmp | SkillsMP marketplace                 | Official API                                                    |
+| skillssh | skills.sh, with install counts       | Public but undocumented endpoint; marked unofficial, may change |
+
+Add any registry with a JSON definition and `cclens engines add engine.json`:
+
+```json
+{
+  "id": "my-registry",
+  "type": "generic-http",
+  "name": "My registry",
+  "request": {
+    "url": "https://registry.example.com/search?q={query}&limit={limit}",
+    "headers": { "Authorization": "Bearer ${env:MY_REGISTRY_KEY}" }
+  },
+  "response": {
+    "items": "data.results",
+    "map": {
+      "name": "title",
+      "url": "link",
+      "description": "summary",
+      "repoUrl": "repo",
+      "stars": "stars"
+    }
+  }
+}
+```
+
+Keys are always `${env:NAME}` references and never stored in the file.
+
 ## Privacy
 
-Everything stays on your machine. `cclens review --ai` is the one exception you opt into: it runs `claude -p` with your own Claude login and sends aggregate numbers only (token totals, session sizes, rule findings), never your prompts or transcripts. Tools and MCP servers are turned off for that call and spending is capped at $0.50. Skill search (coming next) sends only your search text to the registries.
+Everything stays on your machine. `cclens review --ai` is the one exception you opt into: it runs `claude -p` with your own Claude login and sends aggregate numbers only (token totals, session sizes, rule findings), never your prompts or transcripts. Tools and MCP servers are turned off for that call and spending is capped at $0.50. Skill search sends only your search text to the registries, and repository names to GitHub to look up stars.
 
 ## Development
 

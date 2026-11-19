@@ -4,9 +4,15 @@ import { delimiter, dirname, join } from 'node:path';
 import { JsonSettingsManager } from './adapters/claude/json-settings-manager.js';
 import { PluginTreeSource } from './adapters/claude/skills/plugin-tree-source.js';
 import { SkillDirSource } from './adapters/claude/skills/skill-dir-source.js';
+import { DefaultEngineFactory } from './adapters/engines/engine-factory.js';
+import { GithubMetadataProvider } from './adapters/engines/github/github-metadata-provider.js';
+import { FetchHttpClient } from './adapters/http/fetch-http-client.js';
+import { FileCache } from './adapters/storage/file-cache.js';
+import { EnvSecretResolver } from './adapters/system/env-secret-resolver.js';
 import { CcusageTokenProvider } from './adapters/tokens/ccusage-token-provider.js';
 import { CompositeSkillSource } from './app/inventory/composite-skill-source.js';
 import type { AiReviewer, SessionActivitySource } from './core/ports/review.js';
+import type { EngineFactory, RepoMetadataProvider } from './core/ports/search.js';
 import type { SkillSource } from './core/ports/skills.js';
 import type { TokenUsageProvider } from './core/ports/tokens.js';
 import { LegacyLogSource } from './adapters/claude/history/legacy-log-source.js';
@@ -22,6 +28,9 @@ import { resolvePaths } from './adapters/system/paths.js';
 import { SystemClock } from './adapters/system/system-clock.js';
 import type { ClaudeSettingsManager } from './core/ports/claude-settings.js';
 import type {
+  Cache,
+  HttpClient,
+  SecretResolver,
   Clock,
   ConfigStore,
   FileProbe,
@@ -53,6 +62,13 @@ export interface Container {
   readonly activitySource: SessionActivitySource;
   /** Second-opinion reviewer behind `cclens review --ai` (headless Claude Code). */
   readonly aiReviewer: AiReviewer;
+  readonly cache: Cache;
+  readonly http: HttpClient;
+  readonly secrets: SecretResolver;
+  /** Builds search engines from config entries. */
+  readonly engineFactory: EngineFactory;
+  /** Adds GitHub stars to results from engines that lack them. */
+  readonly repoMetadata: RepoMetadataProvider;
   /** Shell command that starts this cclens CLI; written into Claude Code hooks. */
   readonly selfCommand: string;
   readonly nodeVersion: string;
@@ -62,6 +78,8 @@ export interface ContainerOptions {
   readonly env?: NodeJS.ProcessEnv;
   readonly cwd?: string;
   readonly verbose?: boolean;
+  /** cclens version, sent as the HTTP User-Agent. */
+  readonly version?: string;
   /** Replace any dependency, e.g. with fakes in tests. */
   readonly overrides?: Partial<Container>;
 }
@@ -121,6 +139,9 @@ export function createContainer(options: ContainerOptions = {}): Container {
   const logger = o.logger ?? new FileLogger(paths.hookErrorLog, options.verbose ?? false);
   const env = options.env ?? process.env;
   const runner = new NodeProcessRunner();
+  const cache = o.cache ?? new FileCache(paths.cacheDir, clock);
+  const http = o.http ?? new FetchHttpClient(`cclens/${options.version ?? 'dev'}`);
+  const secrets = o.secrets ?? new EnvSecretResolver(env, runner);
   return {
     paths,
     clock,
@@ -150,6 +171,11 @@ export function createContainer(options: ContainerOptions = {}): Container {
       command: [process.execPath, ccusageCliPath()],
     }),
     activitySource: new TranscriptActivitySource(paths.claudeProjectsDir, logger),
+    cache,
+    http,
+    secrets,
+    engineFactory: new DefaultEngineFactory({ http, secrets }),
+    repoMetadata: new GithubMetadataProvider(http, secrets, cache),
     aiReviewer: new ClaudeCliReviewer(runner, { command: env['CCLENS_CLAUDE_BIN'] ?? 'claude' }),
     selfCommand: o.selfCommand ?? defaultSelfCommand(options.env),
     nodeVersion: process.version,

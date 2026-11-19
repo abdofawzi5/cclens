@@ -61,3 +61,26 @@ export interface Paths {
 export interface FileProbe {
   exists(path: string): Promise<boolean>;
 }
+
+export interface HttpResponse {
+  readonly status: number;
+  readonly headers: Readonly<Record<string, string>>;
+  /** Parsed JSON body; undefined when the body is not JSON. */
+  readonly json: unknown;
+}
+
+/** Fetches JSON over HTTPS. Lets engines be tested against recorded responses. */
+export interface HttpClient {
+  getJson(
+    url: string,
+    options: { headers?: Record<string, string>; signal: AbortSignal },
+  ): Promise<HttpResponse>;
+}
+
+/** Turns `${env:NAME}` references into values. Secrets never live in the config file. */
+export interface SecretResolver {
+  /** Replaces every `${env:NAME}` in `text`; undefined when a referenced value is missing. */
+  resolve(text: string): string | undefined;
+  /** A GitHub token from config, `GITHUB_TOKEN`, or the GitHub CLI (`gh auth token`). */
+  githubToken(ref?: string): Promise<string | undefined>;
+}

@@ -6,3 +6,4 @@ export type * from './ports/index.js';
 export * from './rules/index.js';
 export * from './util/format.js';
 export * from './util/estimate-tokens.js';
+export * from './search/index.js';

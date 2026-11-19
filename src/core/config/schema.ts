@@ -33,8 +33,6 @@ const skillsShEngine = z.object({
   ...engineBase,
   type: z.literal('skillssh'),
   baseUrl: z.url().default('https://skills.sh'),
-  /** Vercel OIDC token for the documented v1 API. Without it the public search endpoint is used. */
-  token: secretRef.optional(),
 });
 
 /** Declarative engine: lets users add a registry with JSON only. */
@@ -44,7 +42,8 @@ const genericHttpEngine = z.object({
   name: z.string().min(1),
   request: z.object({
     /** May contain `{query}` and `{limit}` placeholders. */
-    url: z.url(),
+    url: z.string().regex(/^https:\/\//, 'must be an https URL'),
+    /** Header values may use `${env:VAR}` references for keys. */
     headers: z.record(z.string(), z.string()).default({}),
   }),
   response: z.object({
@@ -60,6 +59,8 @@ const genericHttpEngine = z.object({
     }),
   }),
 });
+
+export { secretRef };
 
 export const engineConfigSchema = z.discriminatedUnion('type', [
   githubEngine,
