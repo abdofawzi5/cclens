@@ -5,7 +5,14 @@ import {
 } from '../core/domain/hooks.js';
 import { describeError } from '../core/errors.js';
 import type { ClaudeSettingsManager, HookSpec } from '../core/ports/claude-settings.js';
-import type { ConfigStore, FileProbe, Paths } from '../core/ports/infrastructure.js';
+import { isBudgetSet, money } from '../core/domain/budget.js';
+import type {
+  Clock,
+  ConfigStore,
+  FileProbe,
+  Paths,
+  SpendRollupStore,
+} from '../core/ports/infrastructure.js';
 import type { CheckResult, HealthCheck, HookRunnerStore } from '../core/ports/install.js';
 import type { UsageService } from './usage-service.js';
 
@@ -17,6 +24,9 @@ export interface DoctorDeps {
   readonly usage: UsageService;
   readonly files: FileProbe;
   readonly nodeVersion: string;
+  /** Budget check (Phase 10); skipped when absent. */
+  readonly spend?: SpendRollupStore;
+  readonly clock?: Clock;
 }
 
 type Outcome = Omit<CheckResult, 'id' | 'title'>;
@@ -70,6 +80,7 @@ export class DoctorService {
         await d.configStore.load();
         return { status: 'ok', message: d.configStore.path };
       }),
+      ...(d.spend ? [this.budgetCheck(d.spend, d.clock)] : []),
       check('event-log', 'Usage log', async () => {
         if (!(await d.files.exists(d.paths.eventsFile))) {
           return { status: 'fail', message: 'missing', fix: 'cclens init' };
@@ -132,6 +143,29 @@ export class DoctorService {
     ];
   }
 
+  /** Budget limits and how old the spend snapshot is. Informational: never fails. */
+  private budgetCheck(spend: SpendRollupStore, clock: Clock | undefined): HealthCheck {
+    return check('budget', 'Budget', async () => {
+      const budget = (await this.deps.configStore.load()).budget;
+      const rollup = await spend.read();
+      const now = clock?.now() ?? new Date();
+      const age = rollup
+        ? `spend snapshot ${ageText(now.getTime() - rollup.updatedAt.getTime())} old`
+        : 'no spend snapshot yet';
+      if (!isBudgetSet(budget)) {
+        return {
+          status: 'ok',
+          message: `not set (optional: cclens budget set --daily <usd>); ${age}`,
+        };
+      }
+      const limits = [
+        budget.daily === undefined ? '' : `daily ${money(budget.daily)}`,
+        budget.monthly === undefined ? '' : `monthly ${money(budget.monthly)}`,
+      ].filter(Boolean);
+      return { status: 'ok', message: `${limits.join(', ')}; ${age}` };
+    });
+  }
+
   /** Checks that the absolute paths in a hook command line still exist. */
   private async targetOf(command: string, fix: string): Promise<Outcome> {
     const paths = quotedPaths(command);
@@ -157,4 +191,11 @@ export class DoctorService {
     }
     return results;
   }
+}
+
+function ageText(ms: number): string {
+  const min = Math.max(0, Math.round(ms / 60_000));
+  if (min < 60) return `${String(min)} min`;
+  const h = Math.round(min / 60);
+  return h < 48 ? `${String(h)} h` : `${String(Math.round(h / 24))} days`;
 }

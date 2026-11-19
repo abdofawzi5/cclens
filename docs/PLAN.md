@@ -178,6 +178,7 @@ Shipped as planned. Also found: scheduled runs have no typed prompt, so the tran
   - **`init`:** stays non-interactive; it prints one tip line (`cclens budget set --daily <usd>`) when no budget is set.
   - **Doctor:** reports the budget and how old the rollup is.
   - **Tests:** the hook path with a stale, fresh and missing rollup; once-per-day dedupe; the timing test under 150 ms.
+- **As built:** `ccusage statusline` exists (beta) but shows ccusage's own figures and nothing of cclens's, so `cclens statusline` prints its own line and `--with-ccusage` puts ccusage's line in front. main.ts sends `statusline` down a fast path that skips commander, zod and the container; it reads `config.json` and `cache/spend.json` by hand and takes about 50 ms. The rollup is refreshed by a detached `cclens budget refresh` started from the hook and the status line when it is older than 10 minutes, and by `budget show`; `tokens` and `review` do not write it (a deviation: those already run ccusage for their own windows and keeping them read-only is simpler). The hook prints Claude Code hook JSON (`systemMessage` plus `additionalContext`), and the plugin hook script now passes stdout through. The hook took about 115 ms end to end in a live run.
 
 ### Phase 11: context overhead and fixes (0.7.0)
 

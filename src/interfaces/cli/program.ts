@@ -1,5 +1,6 @@
 import { Command } from 'commander';
 import { AgentService } from '../../app/agent-service.js';
+import { BudgetService } from '../../app/budget-service.js';
 import { ConfigService } from '../../app/config-service.js';
 import { DoctorService } from '../../app/doctor-service.js';
 import { InventoryService } from '../../app/inventory/inventory-service.js';
@@ -16,6 +17,7 @@ import { defaultRules } from '../../core/rules/index.js';
 import { JsonRenderer } from '../render/json-renderer.js';
 import type { CliCommand, CommandContext, Services } from './command.js';
 import { AgentsCommand } from './commands/agents-command.js';
+import { BudgetCommand } from './commands/budget-command.js';
 import { ConfigCommand } from './commands/config-command.js';
 import { DoctorCommand } from './commands/doctor-command.js';
 import { HookCommand } from './commands/hook-command.js';
@@ -27,6 +29,7 @@ import { EnginesCommand } from './commands/engines-command.js';
 import { SearchCommand } from './commands/search-command.js';
 import { PathsCommand } from './commands/paths-command.js';
 import { SkillsCommand } from './commands/skills-command.js';
+import { StatuslineCommand } from './commands/statusline-command.js';
 import { TokensCommand } from './commands/tokens-command.js';
 import { UninstallCommand } from './commands/uninstall-command.js';
 import { UsageCommand } from './commands/usage-command.js';
@@ -40,6 +43,8 @@ const COMMANDS: readonly CliCommand[] = [
   new ReportCommand(),
   new AgentsCommand(),
   new JobsCommand(),
+  new BudgetCommand(),
+  new StatuslineCommand(),
   new SearchCommand(),
   new EnginesCommand(),
   new InitCommand(),
@@ -90,6 +95,14 @@ export function buildServices(c: Container): Services {
       sessions: c.activitySource,
     }),
     jobs: new JobService(c.tokens, c.activitySource, c.clock),
+    budget: new BudgetService({
+      config,
+      store: c.spendStore,
+      tokens: c.tokens,
+      usage,
+      clock: c.clock,
+      background: c.background,
+    }),
     setup: new SetupService({
       paths: c.paths,
       configStore: c.configStore,
@@ -109,6 +122,8 @@ export function buildServices(c: Container): Services {
       usage,
       files: c.files,
       nodeVersion: c.nodeVersion,
+      spend: c.spendStore,
+      clock: c.clock,
     }),
   };
 }

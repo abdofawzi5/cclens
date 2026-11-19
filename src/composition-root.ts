@@ -29,6 +29,8 @@ import { JsonlEventStore } from './adapters/storage/jsonl-event-store.js';
 import { FileHookRunnerStore } from './adapters/storage/file-hook-runner-store.js';
 import { AtomicFileWriter } from './adapters/storage/atomic-file-writer.js';
 import { ChartJsAsset } from './adapters/system/chartjs-asset.js';
+import { DetachedRunner } from './adapters/system/detached-runner.js';
+import { FileSpendRollupStore } from './adapters/storage/spend-rollup-file.js';
 import { SystemOpener } from './adapters/system/system-opener.js';
 import { FileLogger } from './adapters/system/file-logger.js';
 import { NodeFileProbe } from './adapters/system/node-file-probe.js';
@@ -50,6 +52,8 @@ import type {
   Paths,
   ProcessRunner,
   ScriptAsset,
+  SpendRollupStore,
+  BackgroundRunner,
 } from './core/ports/infrastructure.js';
 import type { UsageEventStore, UsageHistorySource } from './core/ports/usage.js';
 
@@ -99,6 +103,10 @@ export interface Container {
   readonly opener: Opener;
   /** Chart.js source, inlined into HTML reports. */
   readonly chartScript: ScriptAsset;
+  /** Today's and this month's spend, read by the hook and status line. */
+  readonly spendStore: SpendRollupStore;
+  /** Starts `cclens budget refresh` in the background. */
+  readonly background: BackgroundRunner;
 }
 
 export interface ContainerOptions {
@@ -221,6 +229,8 @@ export function createContainer(options: ContainerOptions = {}): Container {
     fileWriter: new AtomicFileWriter(),
     opener: new SystemOpener(runner),
     chartScript: new ChartJsAsset(),
+    spendStore: new FileSpendRollupStore(paths.spendFile),
+    background: new DetachedRunner(),
     ...o,
   };
 }

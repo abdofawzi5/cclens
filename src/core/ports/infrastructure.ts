@@ -1,4 +1,5 @@
 import type { CclensConfig } from '../config/schema.js';
+import type { SpendRollup } from '../domain/budget.js';
 
 export interface ConfigStore {
   readonly path: string;
@@ -49,6 +50,8 @@ export interface Paths {
   readonly hookErrorLog: string;
   /** Command line that starts the cclens CLI, read by the plugin's hook script (ADR 0006). */
   readonly hookRunnerFile: string;
+  /** Spend snapshot read by the hook and status line (`cache/spend.json`). */
+  readonly spendFile: string;
   /** Claude Code config dir (`$CLAUDE_CONFIG_DIR` or `~/.claude`). */
   readonly claudeHome: string;
   readonly claudeProjectsDir: string;
@@ -62,6 +65,17 @@ export interface Paths {
 /** Writes a text file the user asked for, such as a report (atomic, parent folders created). */
 export interface FileWriter {
   write(path: string, data: string): Promise<void>;
+}
+
+/** Reads and writes the spend snapshot. `read` never throws: a broken file reads as missing. */
+export interface SpendRollupStore {
+  read(): Promise<SpendRollup | undefined>;
+  write(rollup: SpendRollup): Promise<void>;
+}
+
+/** Starts a cclens command in the background and returns at once (used to refresh the rollup). */
+export interface BackgroundRunner {
+  start(args: readonly string[]): void;
 }
 
 /** Opens a file or URL in the user's default app (browser for HTML). */

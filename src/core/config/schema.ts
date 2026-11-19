@@ -90,6 +90,14 @@ export const configSchema = z.object({
       disabledRules: z.array(z.string()).default([]),
     })
     .prefault({}),
+  /** Spending limits in USD at API list prices; off until set (`cclens budget set`). */
+  budget: z
+    .object({
+      daily: z.number().positive().optional(),
+      monthly: z.number().positive().optional(),
+      warnAt: z.number().int().min(1).max(100).default(100),
+    })
+    .prefault({}),
 });
 
 export type EngineConfig = z.infer<typeof engineConfigSchema>;

@@ -52,6 +52,8 @@ cclens init --plugin
 | `cclens report`         | Usage report: totals, daily cost and tokens, cost by model, costliest sessions, unused skills, findings. Markdown by default; `--open` writes a self-contained HTML page with charts and opens it; `--format json`, `--out <file>`, `--days`/`--since` |
 | `cclens agents`         | Subagent use: calls, runs, tokens and estimated cost per agent type (`--by session` per session), and installed agents you never call (`--unused`). `--since 30d`                                                                                      |
 | `cclens jobs`           | Scheduled tasks and hand-repeated sessions as jobs: runs, cost per run, how often they run and the expected monthly cost; `--job <name>` lists one job's runs. `--since 30d`                                                                           |
+| `cclens budget`         | Daily and monthly spend limits: `set --daily 50 --monthly 800` (`--warn-at 80` for an early heads-up), `show`, `clear`. When spend passes a limit, Claude Code shows one line, at most once a day per limit                                            |
+| `cclens statusline`     | One line for Claude Code's status line: today's and this month's estimated spend against your budget, and skill uses today. `--with-ccusage` puts ccusage's line in front                                                                              |
 | `cclens search <query>` | Search GitHub, SkillsMP and skills.sh at once, duplicates merged, ranked by stars. `--engine`, `--limit`, `--min-stars`, `--sort stars\|installs\|updated\|relevance`, `--refresh`                                                                     |
 | `cclens engines`        | List search engines; `enable`, `disable`, `add <file.json>`, `remove`, `test [id]`                                                                                                                                                                     |
 | `cclens init`           | Set up or repair cclens. `--plugin` when the Claude Code plugin records skill uses                                                                                                                                                                     |
@@ -112,6 +114,12 @@ Keys are always `${env:NAME}` references and never stored in the file.
 ## Privacy
 
 Everything stays on your machine. `cclens review --ai` is the one exception you opt into: it runs `claude -p` with your own Claude login and sends aggregate numbers only (token totals, session sizes, rule findings), never your prompts or transcripts. Tools and MCP servers are turned off for that call and spending is capped at $0.50. Skill search sends only your search text to the registries, and repository names to GitHub to look up stars. `cclens agents` downloads the public LiteLLM model price list (the one ccusage uses) once a day to price subagent messages; it sends nothing about you.
+
+**Status line.** Add this to `~/.claude/settings.json` to see today's estimated spend under the prompt. It reads a small file that cclens refreshes in the background, so it answers in about 50 ms:
+
+```json
+"statusLine": { "type": "command", "command": "cclens statusline" }
+```
 
 ## Development
 

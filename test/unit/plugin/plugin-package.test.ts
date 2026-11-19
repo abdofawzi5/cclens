@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -105,6 +105,19 @@ describe.skipIf(process.platform === 'win32')('plugin hook script', () => {
     );
     run('{"p":1}');
     expect(await readFile(out(), 'utf8')).toBe('hook|{"p":1}');
+  });
+
+  it("passes the CLI's stdout through (budget warnings) and keeps stderr quiet", async () => {
+    await mkdir(join(dir, 'cclens'));
+    await writeFile(join(dir, 'loud-cli.sh'), `echo '{"systemMessage":"x"}'; echo oops >&2\n`);
+    await writeFile(
+      join(dir, 'cclens', 'hook-runner'),
+      `"/bin/sh" "${join(dir, 'loud-cli.sh')}"\n`,
+    );
+    const result = spawnSync('sh', [script], { input: '{}', env, cwd: dir, encoding: 'utf8' });
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe('{"systemMessage":"x"}\n');
+    expect(result.stderr).toBe('');
   });
 
   it('stands down when settings.json already has the cclens hooks', async () => {

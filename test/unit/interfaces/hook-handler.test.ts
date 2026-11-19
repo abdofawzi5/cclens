@@ -1,7 +1,11 @@
 import { PassThrough } from 'node:stream';
 import { describe, expect, it } from 'vitest';
 import { UsageService } from '../../../src/app/usage-service.js';
-import { HookHandler, toRecordInput } from '../../../src/interfaces/hook/hook-handler.js';
+import {
+  HookHandler,
+  hookOutput,
+  toRecordInput,
+} from '../../../src/interfaces/hook/hook-handler.js';
 import { readStdin } from '../../../src/interfaces/hook/read-stdin.js';
 import { FixedClock, MemoryEventStore, MemoryLogger } from '../../support/fakes.js';
 
@@ -98,5 +102,44 @@ describe('readStdin', () => {
     const s = new PassThrough();
     s.write('partial');
     expect(await readStdin(s, 20)).toBe('partial');
+  });
+});
+
+describe('HookHandler budget warning', () => {
+  const make = (warning: () => Promise<string | undefined>) => {
+    const logger = new MemoryLogger();
+    const usage = new UsageService(new MemoryEventStore(), new FixedClock());
+    return { handler: new HookHandler(usage, logger, warning), logger };
+  };
+
+  it('adds the warning on UserPromptSubmit only', async () => {
+    let calls = 0;
+    const { handler } = make(() => {
+      calls++;
+      return Promise.resolve('cclens: over');
+    });
+    expect(await handler.handle(prompt('hello'))).toEqual({
+      kind: 'ignored',
+      reason: 'not a skill use',
+      warning: 'cclens: over',
+    });
+    expect((await handler.handle(post('Skill', { skill: 's' }))).warning).toBeUndefined();
+    expect(calls).toBe(1);
+  });
+
+  it('logs and drops a failing budget check', async () => {
+    const { handler, logger } = make(() => Promise.reject(new Error('boom')));
+    expect(await handler.handle(prompt('/write-article x'))).toEqual({
+      kind: 'recorded',
+      skill: 'write-article',
+    });
+    expect(logger.entries[0]?.message).toBe('budget check failed');
+  });
+
+  it('formats Claude Code hook JSON', () => {
+    expect(JSON.parse(hookOutput('cclens: over'))).toEqual({
+      systemMessage: 'cclens: over',
+      hookSpecificOutput: { hookEventName: 'UserPromptSubmit', additionalContext: 'cclens: over' },
+    });
   });
 });

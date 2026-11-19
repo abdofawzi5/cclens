@@ -1,6 +1,7 @@
 import { Option, type Command } from 'commander';
 import type { SettingsScope } from '../../../core/ports/claude-settings.js';
 import { InstallReportRenderer } from '../../render/report-renderers.js';
+import { isBudgetSet } from '../../../core/domain/budget.js';
 import type { CliCommand, CommandContext } from '../command.js';
 import { formatOf } from '../options.js';
 
@@ -39,8 +40,17 @@ export class InitCommand implements CliCommand {
           migrateLegacy: flags.migrate,
           dryRun: flags.dryRun,
         });
-        ctx.print(ctx.renderer(formatOf(program), new InstallReportRenderer()).render(report));
+        const format = formatOf(program);
+        ctx.print(ctx.renderer(format, new InstallReportRenderer()).render(report));
         if (!report.ok) process.exitCode = 1;
+        if (format !== 'json' && report.ok && !flags.dryRun) {
+          const budget = await ctx.services.budget.budget().catch(() => undefined);
+          if (budget && !isBudgetSet(budget)) {
+            ctx.print(
+              'Tip: get one warning line in Claude Code when spend passes a limit: cclens budget set --daily <usd>',
+            );
+          }
+        }
       });
   }
 }

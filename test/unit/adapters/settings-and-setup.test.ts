@@ -241,6 +241,7 @@ describe('init / doctor / uninstall end to end (temp home)', () => {
     expect(after.map((r) => [r.id, r.status])).toEqual([
       ['node', 'ok'],
       ['config', 'ok'],
+      ['budget', 'ok'],
       ['event-log', 'ok'],
       ['hooks', 'ok'],
       ['hook-owner', 'ok'],

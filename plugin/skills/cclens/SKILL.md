@@ -16,18 +16,20 @@ cclens reads Claude Code's own data on this machine and answers from it. Run it 
 
 ## Pick the command
 
-| The user asks                                          | Run                                                                  |
-| ------------------------------------------------------ | -------------------------------------------------------------------- |
-| Which skills are installed, by plugin, how often used  | `cclens skills` (`--by-plugin`, `--plugin <name>`, `--since 30d`)    |
-| Which skills they never use                            | `cclens skills --unused --since 30d`                                 |
-| Skill use over time or per project                     | `cclens usage --by skill\|day\|project\|source --since 7d`           |
-| Tokens and estimated cost                              | `cclens tokens daily\|weekly\|monthly\|session\|project\|blocks`     |
-| How to use fewer tokens                                | `cclens review --days 30` (`--last`, or `--session <id or title>`)   |
-| A skill for some task                                  | `cclens search <words>` (`--min-stars 50`, `--sort stars\|installs`) |
-| Subagents: which run, what they cost, which are unused | `cclens agents` (`--by session`, `--unused`, `--since 30d`)          |
-| Scheduled or repeated tasks and what they cost a month | `cclens jobs` (`--job <name>` for one job's runs, `--since 30d`)     |
-| A report, a chart or a usage overview                  | see "Charts and reports" below                                       |
-| Whether recording works                                | `cclens doctor`                                                      |
+| The user asks                                          | Run                                                                    |
+| ------------------------------------------------------ | ---------------------------------------------------------------------- |
+| Which skills are installed, by plugin, how often used  | `cclens skills` (`--by-plugin`, `--plugin <name>`, `--since 30d`)      |
+| Which skills they never use                            | `cclens skills --unused --since 30d`                                   |
+| Skill use over time or per project                     | `cclens usage --by skill\|day\|project\|source --since 7d`             |
+| Tokens and estimated cost                              | `cclens tokens daily\|weekly\|monthly\|session\|project\|blocks`       |
+| How to use fewer tokens                                | `cclens review --days 30` (`--last`, or `--session <id or title>`)     |
+| A skill for some task                                  | `cclens search <words>` (`--min-stars 50`, `--sort stars\|installs`)   |
+| Subagents: which run, what they cost, which are unused | `cclens agents` (`--by session`, `--unused`, `--since 30d`)            |
+| Scheduled or repeated tasks and what they cost a month | `cclens jobs` (`--job <name>` for one job's runs, `--since 30d`)       |
+| Spend limits and warnings                              | `cclens budget` (`set --daily <usd> --monthly <usd>`, `show`, `clear`) |
+| A status line with today's spend                       | `cclens statusline` in `statusLine` of `~/.claude/settings.json`       |
+| A report, a chart or a usage overview                  | see "Charts and reports" below                                         |
+| Whether recording works                                | `cclens doctor`                                                        |
 
 Dates take `YYYY-MM-DD` or relative values like `7d`, `4w`, `3m`.
 
