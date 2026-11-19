@@ -1,6 +1,6 @@
 {
   "name": "cclens",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Claude Code Lens: records which skills you use, and lets Claude show your skill inventory, usage, token stats, optimization advice and skill search through the cclens CLI.",
   "author": {
     "name": "Abdelrahman Fawzi",
