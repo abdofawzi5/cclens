@@ -166,7 +166,14 @@ Proposed 2026-11-19 after the first real report showed almost every installed sk
 ### Phase 10: live feedback (0.6.0)
 
 - **Status line:** check first whether `ccusage statusline` already does it (reuse before rebuild); if it does, `cclens statusline` wraps it and adds the skill count. It must answer in under 100 ms, so it reads a small rollup cache instead of running ccusage each time.
-- **Budgets:** `config.budget.daily` / `.monthly`. The `UserPromptSubmit` hook reads the cached rollup and, when over budget, prints one warning line as hook context. It never blocks and stays inside the 150 ms hook limit.
+- **Budget warnings** (decided 2026-11-19; off until a budget is set):
+  - **Setting:** `cclens budget set --daily 50 --monthly 800`, `cclens budget show` (spend so far against each limit), `cclens budget clear`. Stored in `config.budget` (`daily`, `monthly`, `warnAt` default 100%, optional `warnAt: 80` for an early heads-up).
+  - **Spend data:** a `SpendRollup` port with a file adapter at `~/.cclens/cache/spend.json` (today's and this month's estimated cost, with a timestamp). `cclens tokens`, `review` and `budget show` refresh it; the hook refreshes it in a detached background process when it is older than 10 minutes, so the hook itself only reads a small file.
+  - **Warning:** the `UserPromptSubmit` hook prints one line of hook context when spend passes a limit, e.g. `cclens: today's estimated cost is $71 (daily budget $50)`. At most once per limit per day (state in the rollup file), so it doesn't repeat on every prompt. It never blocks, always exits 0 and stays inside the 150 ms hook budget; the plugin and `init` hooks share the same code.
+  - **Wording:** always "estimated" at API list prices, since a subscription plan bills differently.
+  - **`init`:** stays non-interactive; it prints one tip line (`cclens budget set --daily <usd>`) when no budget is set.
+  - **Doctor:** reports the budget and how old the rollup is.
+  - **Tests:** the hook path with a stale, fresh and missing rollup; once-per-day dedupe; the timing test under 150 ms.
 
 ### Phase 11: context overhead and fixes (0.7.0)
 
@@ -183,7 +190,7 @@ Proposed 2026-11-19 after the first real report showed almost every installed sk
 1. ~~Chart drawing~~: decided 2026-11-19: Chart.js, inlined into the HTML file.
 2. ~~Agent cost~~: decided 2026-11-19: both, priced per message and share of session (see Phase 8).
 3. Do scheduled-task sessions carry a marker in the transcript, or is title grouping the only signal?
-4. Budget warnings: on by default with no budget set (off), or offered by `cclens init`?
+4. ~~Budget warnings~~: decided 2026-11-19: added (Phase 10), off until `cclens budget set`.
 
 ## 7. Quality bar
 
