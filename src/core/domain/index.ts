@@ -11,3 +11,6 @@ export type * from './report.js';
 export * from './agent.js';
 export * from './jobs.js';
 export * from './budget.js';
+export * from './overhead.js';
+export * from './fix-hints.js';
+export * from './trend.js';

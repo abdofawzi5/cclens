@@ -1,7 +1,9 @@
 import { Option, type Command } from 'commander';
 import pc from 'picocolors';
 import type { InventoryReport, SkillRow } from '../../../app/inventory/inventory-service.js';
+import type { FixHint } from '../../../core/domain/fix-hints.js';
 import type { SkillScope } from '../../../core/domain/skill.js';
+import { compact } from '../../../core/util/format.js';
 import { truncate } from '../../render/format.js';
 import { TableRenderer } from '../../render/table-renderer.js';
 import type { CliCommand, CommandContext } from '../command.js';
@@ -14,6 +16,7 @@ interface SkillsFlags {
   unused: boolean;
   since?: Date;
   byPlugin: boolean;
+  fix: boolean;
 }
 
 const skillTable = new TableRenderer<SkillRow>([
@@ -46,6 +49,47 @@ function summary(report: InventoryReport, flags: SkillsFlags): string {
   return lines.join('\n');
 }
 
+function groupName(h: FixHint): string {
+  return h.group.plugin ?? h.group.skillId ?? '';
+}
+
+function size(h: FixHint): string {
+  const n = h.group.skills;
+  return `${String(n)} ${n === 1 ? 'skill' : 'skills'}, ~${compact(h.group.tokens)} tokens`;
+}
+
+/** `--fix`: commands to stop listing unused plugins and skills. Printed, never run. */
+export function renderFixHints(hints: readonly FixHint[], window: string): string {
+  if (hints.length === 0)
+    return `Every installed plugin and skill was used${window}. Nothing to turn off.`;
+  const tokens = hints.reduce((n, h) => n + h.group.tokens, 0);
+  const plugins = hints.filter((h) => h.group.plugin).length;
+  const out = [
+    `Unused${window}: ${String(plugins)} plugins and ${String(hints.length - plugins)} standalone skills, ` +
+      `~${compact(tokens)} listing tokens on every request.`,
+  ];
+  const commands = hints.filter((h) => h.kind === 'command');
+  if (commands.length > 0) {
+    const width = Math.max(...commands.map((h) => h.command.length));
+    out.push('', 'Run these yourself to stop listing them (cclens never runs them):');
+    for (const h of commands) {
+      const note = h.note ? `; ${h.note}` : '';
+      out.push(`  ${h.command.padEnd(width)}  ${pc.dim(`# ${size(h)}${note}`)}`);
+    }
+  }
+  const manual = hints.filter((h) => h.kind === 'manual');
+  if (manual.length > 0) {
+    out.push('', 'No command for these:');
+    for (const h of manual)
+      out.push(`  ${pc.bold(groupName(h))} ${pc.dim(`(${size(h)})`)}: ${h.note}`);
+  }
+  out.push(
+    '',
+    pc.dim('Uses are only known since cclens started recording; check before turning off.'),
+  );
+  return out.join('\n');
+}
+
 /** `cclens skills`: installed skills with use counts. */
 export class SkillsCommand implements CliCommand {
   register(program: Command, ctx: CommandContext): void {
@@ -65,7 +109,24 @@ export class SkillsCommand implements CliCommand {
         parseDateOption(v),
       )
       .option('--by-plugin', 'summarise per plugin instead of per skill', false)
+      .option(
+        '--fix',
+        'print the commands that turn off unused plugins (cclens never runs them)',
+        false,
+      )
       .action(async (flags: SkillsFlags) => {
+        if (flags.fix) {
+          const hints = await ctx.services.inventory.fixHints(
+            flags.since ? { since: flags.since } : undefined,
+          );
+          const window = flags.since ? ` since ${flags.since.toLocaleDateString()}` : '';
+          ctx.print(
+            formatOf(program) === 'json'
+              ? ctx.renderer('json', skillTable).render(hints)
+              : renderFixHints(hints, window),
+          );
+          return;
+        }
         const report = await ctx.services.inventory.report({
           ...(flags.scope ? { scope: flags.scope } : {}),
           ...(flags.plugin ? { plugin: flags.plugin } : {}),
@@ -77,7 +138,9 @@ export class SkillsCommand implements CliCommand {
           return;
         }
         const body = flags.byPlugin
-          ? pluginTable.render(report.byPlugin)
+          ? pluginTable.render(
+              flags.unused ? report.byPlugin.filter((p) => p.uses === 0) : report.byPlugin,
+            )
           : skillTable.render(report.skills);
         ctx.print(`${summary(report, flags)}\n${body}`);
       });

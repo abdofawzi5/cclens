@@ -1,3 +1,4 @@
+import type { WindowComparison } from './trend.js';
 import type { Agent, AgentRun } from './agent.js';
 import type { Recommendation } from './recommendation.js';
 import type { SessionTitle } from './session-labels.js';
@@ -48,6 +49,8 @@ export interface ReviewContext {
   readonly agentCalls: ReadonlyMap<string, number>;
   /** Subagent runs in scope, with tokens per model. */
   readonly agentRuns: readonly AgentRun[];
+  /** Tokens per skill in Claude Code's listing, from the latest transcript that has one. */
+  readonly skillListing?: Readonly<Record<string, number>>;
 }
 
 /** Totals shown above the recommendations. */
@@ -74,4 +77,6 @@ export interface ReviewReport {
   /** Data that could not be loaded or rules that failed; the report is partial. */
   readonly notes: readonly string[];
   readonly ai?: AiReviewStatus;
+  /** This window against the one before it (`--compare`). */
+  readonly comparison?: WindowComparison;
 }

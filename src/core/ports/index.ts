@@ -7,3 +7,4 @@ export type * from './claude-settings.js';
 export type * from './infrastructure.js';
 export type * from './install.js';
 export type * from './agents.js';
+export type * from './overhead.js';

@@ -63,6 +63,22 @@ describe('UnusedSkillsRule', () => {
     expect(rec?.severity).toBe('info');
   });
 
+  it('uses the measured listing when a transcript recorded one', () => {
+    const [rec] = new UnusedSkillsRule().evaluate(
+      reviewContext({
+        installedSkills: installed,
+        skillUseCounts: new Map([['mkt:seo', 2]]),
+        skillListing: { 'social:a': 30, 'social:b': 5, 'mkt:email': 7 },
+      }),
+    );
+    // write-article is not in the listing, so it costs nothing per request.
+    expect(rec?.estimatedTokenSavings).toBe(35);
+    expect(rec?.detail).toContain('measured in your latest session');
+    expect(rec?.actions).toEqual([
+      'cclens skills --unused --fix   # the commands that turn them off',
+    ]);
+  });
+
   it('warns when the listing is large and explains short tracking history', () => {
     const rule = new UnusedSkillsRule({ warnAboveTokens: 10 });
     const [rec] = rule.evaluate(

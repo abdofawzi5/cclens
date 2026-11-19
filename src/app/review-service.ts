@@ -17,6 +17,9 @@ import type { Clock } from '../core/ports/infrastructure.js';
 import type { AgentActivitySource, AgentSource } from '../core/ports/agents.js';
 import type { AiReviewer, OptimizationRule, SessionActivitySource } from '../core/ports/review.js';
 import type { SkillSource } from '../core/ports/skills.js';
+import { latestSkillListing } from '../core/domain/overhead.js';
+import { type WindowComparison, windowStats } from '../core/domain/trend.js';
+import type { ContextOverheadSource } from '../core/ports/overhead.js';
 import type { TokenUsageProvider } from '../core/ports/tokens.js';
 import type { ConfigService } from './config-service.js';
 import type { UsageService } from './usage-service.js';
@@ -32,6 +35,8 @@ export interface ReviewOptions {
   readonly ai?: boolean;
   /** Run only these rule ids. */
   readonly only?: readonly string[];
+  /** Also total the previous window of the same length, for `--compare`. */
+  readonly compare?: boolean;
 }
 
 export interface RuleInfo {
@@ -47,6 +52,8 @@ export interface ReviewDeps {
   readonly skills: SkillSource;
   readonly usage: UsageService;
   readonly tokens: TokenUsageProvider;
+  /** Measured skill listing (Phase 11); estimates are used without it. */
+  readonly overhead?: ContextOverheadSource;
   readonly activity: SessionActivitySource;
   readonly clock: Clock;
   readonly rules: readonly OptimizationRule[];
@@ -105,6 +112,14 @@ export class ReviewService {
       }
     };
 
+    const overhead = this.deps.overhead;
+    const listingTask: Promise<Readonly<Record<string, number>> | undefined> =
+      sessionMode || !overhead
+        ? Promise.resolve(undefined)
+        : overhead
+            .read(since)
+            .then(latestSkillListing)
+            .catch(() => undefined);
     const agentSource = this.deps.agents;
     const agentActivity = this.deps.agentActivity;
     const [installed, counts, firstUse, daily, allSessions, allActivity, agents, allAgentActivity] =
@@ -138,6 +153,7 @@ export class ReviewService {
             )
           : NO_AGENT_ACTIVITY,
       ]);
+    const skillListing = await listingTask;
 
     let scope: ReviewScope = { kind: 'window' };
     let sessions = allSessions;
@@ -167,6 +183,7 @@ export class ReviewService {
       installedAgents: agents,
       agentCalls: allAgentActivity.calls,
       agentRuns,
+      ...(skillListing ? { skillListing } : {}),
     };
 
     const disabled = new Set(config.disabledRules);
@@ -222,7 +239,32 @@ export class ReviewService {
       notes,
       ...(ai ? { ai } : {}),
     };
+    if (options.compare && scope.kind === 'window') {
+      const comparison = await load('the previous window', undefined, () =>
+        this.compare(since, now, windowDays, activity),
+      );
+      if (comparison) return { report: { ...report, comparison, notes }, context: ctx };
+    }
     return { report, context: ctx };
+  }
+
+  /** Totals for `[since, now]` and the window of the same length before it. */
+  private async compare(
+    since: Date,
+    now: Date,
+    windowDays: number,
+    current: readonly SessionActivity[],
+  ): Promise<WindowComparison> {
+    const before = startOfDay(new Date(since.getTime() - windowDays * DAY_MS));
+    const [daily, activity] = await Promise.all([
+      this.deps.tokens.byPeriod('day', { since: before }),
+      this.deps.activity.read(before),
+    ]);
+    const until = new Date(now.getTime() + 1);
+    return {
+      current: windowStats(since, until, daily, current),
+      previous: windowStats(before, since, daily, activity),
+    };
   }
 
   private resolveSession(

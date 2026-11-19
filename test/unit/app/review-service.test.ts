@@ -5,6 +5,7 @@ import { UsageService } from '../../../src/app/usage-service.js';
 import type { Recommendation } from '../../../src/core/domain/recommendation.js';
 import type { ReviewContext, SessionActivity } from '../../../src/core/domain/review.js';
 import type { OptimizationRule } from '../../../src/core/ports/review.js';
+import { withUnrecorded } from '../../../src/core/domain/overhead.js';
 import { defaultConfig } from '../../../src/core/config/defaults.js';
 import { event, FixedClock, MemoryEventStore } from '../../support/fakes.js';
 import { FakeTokens } from '../../support/fake-tokens.js';
@@ -218,5 +219,38 @@ describe('ReviewService', () => {
       ok: false,
       error: 'No AI reviewer is configured.',
     });
+  });
+
+  it('compares the window with the one before it', async () => {
+    const { svc } = service();
+    const report = await svc.review({ windowDays: 1, compare: true });
+    // FakeTokens: 2026-11-18 costs $1 (previous day), 2026-11-19 costs $2 (window).
+    expect(report.comparison?.previous).toMatchObject({ costUsd: 1, sessions: 0 });
+    expect(report.comparison?.current).toMatchObject({ costUsd: 2, sessions: 2, prompts: 7 });
+    expect((await svc.review({ last: true, compare: true })).comparison).toBeUndefined();
+  });
+
+  it('uses the latest measured skill listing', async () => {
+    const { svc, window } = service({
+      overhead: {
+        read: () =>
+          Promise.resolve([
+            {
+              sessionId: 'x',
+              project: 'p',
+              at: new Date('2026-11-19T09:00:00Z'),
+              requestTokens: 0,
+              promptTokens: 0,
+              parts: withUnrecorded(0, 0, {}),
+              toolNames: 0,
+              mcpServers: [],
+              instructionFiles: [],
+              skillListing: { 'mkt:seo': 4 },
+            },
+          ]),
+      },
+    });
+    await svc.review();
+    expect(window.seen[0]?.skillListing).toEqual({ 'mkt:seo': 4 });
   });
 });

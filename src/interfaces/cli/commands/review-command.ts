@@ -12,6 +12,7 @@ interface ReviewFlags {
   ai?: boolean;
   rule?: string[];
   listRules?: boolean;
+  compare?: boolean;
 }
 
 /** `cclens review`: rule-based optimization advice, optionally with an AI second opinion. */
@@ -29,6 +30,7 @@ export class ReviewCommand implements CliCommand {
       .option('--last', 'review the most recent session')
       .option('--ai', 'also ask Claude (claude -p, your login) for suggestions; costs a few tokens')
       .option('--rule <id...>', 'run only these rules')
+      .option('--compare', 'compare with the previous window of the same length')
       .option('--list-rules', 'list the available rules and exit')
       .action(async (flags: ReviewFlags) => {
         const format = formatOf(program);
@@ -43,6 +45,7 @@ export class ReviewCommand implements CliCommand {
           ...(flags.last ? { last: true } : {}),
           ...(flags.ai ? { ai: true } : {}),
           ...(flags.rule ? { only: flags.rule } : {}),
+          ...(flags.compare ? { compare: true } : {}),
         };
         const report = await ctx.services.review.review(options);
         ctx.print(ctx.renderer(format, new ReviewRenderer()).render(report));

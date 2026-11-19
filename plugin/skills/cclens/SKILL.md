@@ -26,6 +26,9 @@ cclens reads Claude Code's own data on this machine and answers from it. Run it 
 | A skill for some task                                  | `cclens search <words>` (`--min-stars 50`, `--sort stars\|installs`)   |
 | Subagents: which run, what they cost, which are unused | `cclens agents` (`--by session`, `--unused`, `--since 30d`)            |
 | Scheduled or repeated tasks and what they cost a month | `cclens jobs` (`--job <name>` for one job's runs, `--since 30d`)       |
+| What fills the context before the first prompt         | `cclens context` (`--last`, `--since 14d`)                             |
+| Turn off unused plugins                                | `cclens skills --unused --fix` (prints commands; the user runs them)   |
+| Did a change help?                                     | `cclens review --compare`                                              |
 | Spend limits and warnings                              | `cclens budget` (`set --daily <usd> --monthly <usd>`, `show`, `clear`) |
 | A status line with today's spend                       | `cclens statusline` in `statusLine` of `~/.claude/settings.json`       |
 | A report, a chart or a usage overview                  | see "Charts and reports" below                                         |

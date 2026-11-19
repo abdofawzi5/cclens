@@ -28,6 +28,7 @@ export interface SkillGroup {
 export function skillGroups(
   installed: readonly Skill[],
   counts: ReadonlyMap<string, number>,
+  listing?: Readonly<Record<string, number>>,
 ): readonly SkillGroup[] {
   const groups = new Map<
     string,
@@ -48,13 +49,22 @@ export function skillGroups(
     }
     g.skills.push(skill);
     g.uses += counts.get(skill.id) ?? 0;
-    g.tokens += skillListingTokens(skill);
+    g.tokens += skillListingTokens(skill, listing);
   }
   return [...groups.values()].sort((a, b) => b.tokens - a.tokens);
 }
 
-/** Tokens a skill adds to every request: Claude Code lists each one as `name: description`. */
-export function skillListingTokens(skill: Skill): number {
+/**
+ * Tokens a skill adds to every request. With a measured listing (from a transcript)
+ * that is exact for each skill, and 0 for a skill Claude Code did not list; without
+ * one it is estimated from `name: description`, which is an upper bound because
+ * Claude Code drops descriptions when the list is long.
+ */
+export function skillListingTokens(
+  skill: Skill,
+  listing?: Readonly<Record<string, number>>,
+): number {
+  if (listing) return listing[skill.id] ?? 0;
   return estimateTokens(`- ${skill.id}: ${skill.description ?? ''}`);
 }
 
@@ -75,7 +85,9 @@ export class UnusedSkillsRule implements OptimizationRule {
   }
 
   evaluate(ctx: ReviewContext): readonly Recommendation[] {
-    const unused = skillGroups(ctx.installedSkills, ctx.skillUseCounts).filter((g) => g.uses === 0);
+    const unused = skillGroups(ctx.installedSkills, ctx.skillUseCounts, ctx.skillListing).filter(
+      (g) => g.uses === 0,
+    );
     if (unused.length === 0) return [];
 
     const skills = unused.reduce((n, g) => n + g.skills.length, 0);
@@ -87,7 +99,9 @@ export class UnusedSkillsRule implements OptimizationRule {
 
     const lines = [
       `${skills} of ${ctx.installedSkills.length} installed skills had no recorded use in the last ${ctx.windowDays} days.`,
-      `Their names and descriptions add up to about ${compact(tokens)} tokens. Claude Code shortens the list when it is long, so the real cost per request is lower, but a long list also hides the descriptions of skills you do use, which makes Claude pick them less reliably.`,
+      ctx.skillListing
+        ? `Claude Code's skill listing gives them about ${compact(tokens)} tokens on every request (measured in your latest session). It drops descriptions when the list is long, so a long list also hides the descriptions of skills you do use, which makes Claude pick them less reliably.`
+        : `Their names and descriptions add up to about ${compact(tokens)} tokens. Claude Code shortens the list when it is long, so the real cost per request is lower, but a long list also hides the descriptions of skills you do use, which makes Claude pick them less reliably.`,
     ];
     if (top.length > 0) lines.push(`Largest unused plugins: ${top.join(', ')}.`);
     const tracked = ctx.usageTrackedSince;
@@ -100,11 +114,7 @@ export class UnusedSkillsRule implements OptimizationRule {
     }
     lines.push('Uses outside Claude Code (for example in Cowork) are not recorded.');
 
-    const actions = [
-      'cclens skills --unused --by-plugin   # see what is unused',
-      'Claude Code plugins: claude plugin disable <name>',
-      'Claude desktop app plugins: turn them off in the app’s plugin settings',
-    ];
+    const actions = ['cclens skills --unused --fix   # the commands that turn them off'];
 
     return [
       {

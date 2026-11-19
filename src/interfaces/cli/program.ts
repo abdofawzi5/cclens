@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { AgentService } from '../../app/agent-service.js';
 import { BudgetService } from '../../app/budget-service.js';
+import { ContextService } from '../../app/context-service.js';
 import { ConfigService } from '../../app/config-service.js';
 import { DoctorService } from '../../app/doctor-service.js';
 import { InventoryService } from '../../app/inventory/inventory-service.js';
@@ -18,6 +19,7 @@ import { JsonRenderer } from '../render/json-renderer.js';
 import type { CliCommand, CommandContext, Services } from './command.js';
 import { AgentsCommand } from './commands/agents-command.js';
 import { BudgetCommand } from './commands/budget-command.js';
+import { ContextCommand } from './commands/context-command.js';
 import { ConfigCommand } from './commands/config-command.js';
 import { DoctorCommand } from './commands/doctor-command.js';
 import { HookCommand } from './commands/hook-command.js';
@@ -41,6 +43,7 @@ const COMMANDS: readonly CliCommand[] = [
   new TokensCommand(),
   new ReviewCommand(),
   new ReportCommand(),
+  new ContextCommand(),
   new AgentsCommand(),
   new JobsCommand(),
   new BudgetCommand(),
@@ -77,11 +80,16 @@ export function buildServices(c: Container): Services {
     ai: c.aiReviewer,
     agents: c.agentSource,
     agentActivity: c.agentActivity,
+    overhead: c.overhead,
   });
   return {
     config,
     usage,
-    inventory: new InventoryService(c.skillSource, usage),
+    inventory: new InventoryService(c.skillSource, usage, {
+      settings: c.settings,
+      claudeHome: c.paths.claudeHome,
+      overhead: c.overhead,
+    }),
     tokens: new TokenService(c.tokens, c.activitySource),
     search,
     engines: new EngineService(config, c.engineFactory, search),
@@ -103,6 +111,7 @@ export function buildServices(c: Container): Services {
       clock: c.clock,
       background: c.background,
     }),
+    context: new ContextService(c.overhead, c.clock),
     setup: new SetupService({
       paths: c.paths,
       configStore: c.configStore,

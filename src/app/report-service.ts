@@ -35,9 +35,11 @@ export function buildUsageReport(
   { report, context }: Pick<ReviewAnalysis, 'report' | 'context'>,
   topSessions: number = DEFAULT_TOP_SESSIONS,
 ): UsageReport {
-  const groups = skillGroups(context.installedSkills, context.skillUseCounts).filter(
-    (g) => g.uses === 0,
-  );
+  const groups = skillGroups(
+    context.installedSkills,
+    context.skillUseCounts,
+    context.skillListing,
+  ).filter((g) => g.uses === 0);
   return {
     generatedAt: context.now,
     since: report.since,

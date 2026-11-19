@@ -1,9 +1,16 @@
+import { stripVTControlCharacters as strip } from 'node:util';
 import pc from 'picocolors';
 import type { RuleInfo } from '../../app/review-service.js';
 import type { Recommendation, Severity } from '../../core/domain/recommendation.js';
 import type { ReviewReport } from '../../core/domain/review.js';
 import { SessionLabels } from '../../core/domain/session-labels.js';
-import { localDay } from '../../core/util/format.js';
+import {
+  change,
+  costPerPrompt,
+  type WindowComparison,
+  type WindowStats,
+} from '../../core/domain/trend.js';
+import { localDay, percent } from '../../core/util/format.js';
 import { compact, usd } from './format.js';
 import type { Renderer } from './renderer.js';
 
@@ -39,6 +46,84 @@ function savings(r: Recommendation): string {
   );
 }
 
+type Better = 'lower' | 'higher' | 'neither';
+
+interface Metric {
+  readonly label: string;
+  readonly value: (s: WindowStats) => number | undefined;
+  readonly show: (n: number) => string;
+  readonly better: Better;
+  /** Show the change in percentage points instead of percent. */
+  readonly points?: boolean;
+}
+
+const METRICS: readonly Metric[] = [
+  { label: 'Estimated cost', value: (s) => s.costUsd, show: usd, better: 'lower' },
+  { label: 'Tokens', value: (s) => s.totalTokens, show: compact, better: 'lower' },
+  { label: 'Sessions', value: (s) => s.sessions, show: String, better: 'neither' },
+  { label: 'Prompts', value: (s) => s.prompts, show: String, better: 'neither' },
+  { label: 'Cost per prompt', value: costPerPrompt, show: usd, better: 'lower' },
+  { label: 'Auto-compactions', value: (s) => s.autoCompactions, show: String, better: 'lower' },
+  {
+    label: 'Cache reads',
+    value: (s) => s.cacheReadShare,
+    show: percent,
+    better: 'higher',
+    points: true,
+  },
+];
+
+function delta(m: Metric, before: number | undefined, after: number | undefined): string {
+  if (before === undefined || after === undefined) return '';
+  let text: string;
+  let diff: number;
+  if (m.points) {
+    diff = Math.round((after - before) * 100);
+    text = `${diff > 0 ? '+' : ''}${String(diff)} pts`;
+  } else {
+    const c = change(before, after);
+    if (c === undefined) return after === 0 ? '' : 'new';
+    diff = Math.round(c * 100);
+    text = `${diff > 0 ? '+' : ''}${String(diff)}%`;
+  }
+  if (diff === 0 || m.better === 'neither') return pc.dim(text);
+  const good = m.better === 'lower' ? diff < 0 : diff > 0;
+  return good ? pc.green(text) : pc.yellow(text);
+}
+
+/** `--compare`: this window against the one before it. */
+export function renderComparison(c: WindowComparison): string[] {
+  const prevEnd = new Date(c.previous.until.getTime() - 1);
+  const rows = METRICS.map((m) => {
+    const before = m.value(c.previous);
+    const after = m.value(c.current);
+    return [
+      m.label,
+      before === undefined ? '–' : m.show(before),
+      after === undefined ? '–' : m.show(after),
+      delta(m, before, after),
+    ];
+  });
+  const head = ['', 'Before', 'Now', 'Change'];
+  const widths = head.map((h, i) =>
+    Math.max(h.length, ...rows.map((r) => strip(r[i] ?? '').length)),
+  );
+  const line = (r: readonly string[]): string =>
+    r
+      .map((cell, i) =>
+        i === 0
+          ? cell.padEnd(widths[i] ?? 0)
+          : ' '.repeat(Math.max(0, (widths[i] ?? 0) - strip(cell).length)) + cell,
+      )
+      .join('  ');
+  return [
+    pc.bold(`Compared with ${localDay(c.previous.since)} to ${localDay(prevEnd)}`),
+    pc.dim(line(head)),
+    ...rows.map(line),
+    '',
+  ];
+}
+
 /** `cclens review` as readable text: summary line, then each finding with its actions. */
 export class ReviewRenderer implements Renderer {
   constructor(private readonly width = 88) {}
@@ -61,6 +146,7 @@ export class ReviewRenderer implements Renderer {
       facts.push(`${s.usedSkills} of ${s.installedSkills} skills used`);
     }
     const out = [pc.bold(heading), pc.dim(facts.join(' · ')), ''];
+    if (r.comparison) out.push(...renderComparison(r.comparison));
 
     if (r.recommendations.length === 0) {
       out.push(pc.green('Nothing to improve: no rule found a problem.'), '');

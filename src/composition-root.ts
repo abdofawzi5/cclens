@@ -6,6 +6,7 @@ import { TranscriptAgentSource } from './adapters/claude/history/agent-activity-
 import { LiteLlmPriceList } from './adapters/pricing/litellm-price-list.js';
 import { CompositeAgentSource } from './app/inventory/composite-agent-source.js';
 import type { AgentActivitySource, AgentSource, PriceList } from './core/ports/agents.js';
+import type { ContextOverheadSource } from './core/ports/overhead.js';
 import { JsonSettingsManager } from './adapters/claude/json-settings-manager.js';
 import { PluginTreeSource } from './adapters/claude/skills/plugin-tree-source.js';
 import { SkillDirSource } from './adapters/claude/skills/skill-dir-source.js';
@@ -21,6 +22,7 @@ import type { EngineFactory, RepoMetadataProvider } from './core/ports/search.js
 import type { SkillSource } from './core/ports/skills.js';
 import type { TokenUsageProvider } from './core/ports/tokens.js';
 import { LegacyLogSource } from './adapters/claude/history/legacy-log-source.js';
+import { TranscriptOverheadSource } from './adapters/claude/history/overhead-source.js';
 import { TranscriptActivitySource } from './adapters/claude/history/transcript-activity-source.js';
 import { TranscriptSource } from './adapters/claude/history/transcript-source.js';
 import { ClaudeCliReviewer } from './adapters/claude/review/claude-cli-reviewer.js';
@@ -95,6 +97,7 @@ export interface Container {
   readonly agentSource: AgentSource;
   /** Subagent runs and Agent calls from transcripts. */
   readonly agentActivity: AgentActivitySource;
+  readonly overhead: ContextOverheadSource;
   /** Model prices for per-message agent costs (LiteLLM list, cached a day). */
   readonly prices: PriceList;
   /** Writes files the user asked for (`cclens report --out`). */
@@ -225,6 +228,7 @@ export function createContainer(options: ContainerOptions = {}): Container {
       new PluginAgentSource(paths.pluginRoots),
     ]),
     agentActivity: new TranscriptAgentSource(paths.claudeProjectsDir, logger),
+    overhead: new TranscriptOverheadSource(paths.claudeProjectsDir, logger),
     prices: new LiteLlmPriceList(http, cache),
     fileWriter: new AtomicFileWriter(),
     opener: new SystemOpener(runner),
