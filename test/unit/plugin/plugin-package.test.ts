@@ -46,6 +46,12 @@ describe('Claude Code plugin package', () => {
     expect(pkg.files).toContain('plugin');
   });
 
+  it('declares the bin the way npm publish keeps it', () => {
+    // npm 11 drops bin paths written as "./dist/cli.js" when publishing.
+    const pkg = readJson('package.json') as { bin: Record<string, string> };
+    expect(pkg.bin).toEqual({ cclens: 'dist/cli.js' });
+  });
+
   it('lists the plugin in the repo marketplace', () => {
     const market = readJson('.claude-plugin', 'marketplace.json') as Marketplace;
     expect(market.plugins).toEqual([

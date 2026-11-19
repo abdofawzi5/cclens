@@ -14,7 +14,7 @@
     "url": "https://github.com/abdofawzi5/cclens/issues"
   },
   "bin": {
-    "cclens": "./dist/cli.js"
+    "cclens": "dist/cli.js"
   },
   "exports": {
     ".": {
