@@ -59,6 +59,23 @@ export interface Paths {
   readonly legacyUsageLog: string;
 }
 
+/** Writes a text file the user asked for, such as a report (atomic, parent folders created). */
+export interface FileWriter {
+  write(path: string, data: string): Promise<void>;
+}
+
+/** Opens a file or URL in the user's default app (browser for HTML). */
+export interface Opener {
+  open(target: string): Promise<void>;
+}
+
+/** The source code of a front-end library to inline into a self-contained HTML file. */
+export interface ScriptAsset {
+  readonly name: string;
+  readonly license: string;
+  source(): Promise<string>;
+}
+
 /** Minimal read-only file system queries the application layer may need. */
 export interface FileProbe {
   exists(path: string): Promise<boolean>;

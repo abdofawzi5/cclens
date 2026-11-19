@@ -6,11 +6,12 @@ import { ModelMixRule } from './model-mix.js';
 import { UnusedSkillsRule } from './unused-skills.js';
 import { UsageSpikesRule } from './usage-spikes.js';
 
+export type { SkillGroup } from './unused-skills.js';
 export { CacheChurnRule } from './cache-churn.js';
 export { FrequentCompactionRule } from './frequent-compaction.js';
 export { LongSessionsRule } from './long-sessions.js';
 export { ModelMixRule } from './model-mix.js';
-export { skillListingTokens, UnusedSkillsRule } from './unused-skills.js';
+export { skillGroups, skillListingTokens, UnusedSkillsRule } from './unused-skills.js';
 export { UsageSpikesRule } from './usage-spikes.js';
 
 /** The built-in rule set, with default thresholds. */

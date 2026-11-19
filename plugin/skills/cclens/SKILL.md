@@ -1,6 +1,6 @@
 ---
 name: cclens
-description: Answer questions about the user's Claude Code skills, skill usage, token spend and cost, and how to use fewer tokens, or find new skills, by running the cclens CLI. Use when the user asks which skills they have or use, which skills are unused, how many tokens or dollars Claude Code used (per day, week, month, session, project or 5-hour block), how to cut token use, or to search registries for a skill.
+description: Answer questions about the user's Claude Code skills, skill usage, token spend and cost, and how to use fewer tokens, chart or report their usage, or find new skills, by running the cclens CLI. Use when the user asks which skills they have or use, which skills are unused, how many tokens or dollars Claude Code used (per day, week, month, session, project or 5-hour block), how to cut token use, or to search registries for a skill.
 ---
 
 # cclens
@@ -24,9 +24,16 @@ cclens reads Claude Code's own data on this machine and answers from it. Run it 
 | Tokens and estimated cost                             | `cclens tokens daily\|weekly\|monthly\|session\|project\|blocks`     |
 | How to use fewer tokens                               | `cclens review --days 30` (`--last`, or `--session <id or title>`)   |
 | A skill for some task                                 | `cclens search <words>` (`--min-stars 50`, `--sort stars\|installs`) |
+| A report, a chart or a usage overview                 | see "Charts and reports" below                                       |
 | Whether recording works                               | `cclens doctor`                                                      |
 
 Dates take `YYYY-MM-DD` or relative values like `7d`, `4w`, `3m`.
+
+## Charts and reports
+
+- If you have a chart or visual tool in this conversation (for example one that renders charts or HTML inline), run the matching command with `--json` (`cclens report --json`, `cclens tokens daily --json`, `cclens usage --by skill --json`) and chart those numbers yourself. Label costs as estimates.
+- Otherwise run `cclens report --open`. It writes one HTML page with charts to `~/.cclens/reports/` and opens it in the browser; the page works offline. Tell the user the path it printed.
+- For a text summary in the chat, `cclens report` prints Markdown.
 
 ## Rules
 

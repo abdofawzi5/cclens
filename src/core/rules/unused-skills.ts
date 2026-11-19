@@ -14,12 +14,43 @@ export interface UnusedSkillsOptions {
 
 const DEFAULTS: UnusedSkillsOptions = { warnAboveTokens: 5_000, listTop: 5 };
 
-interface Group {
+/** Installed skills grouped by plugin (standalone skills are their own group). */
+export interface SkillGroup {
   readonly name: string;
   readonly isPlugin: boolean;
-  readonly skills: Skill[];
-  uses: number;
-  tokens: number;
+  readonly skills: readonly Skill[];
+  readonly uses: number;
+  /** Listing tokens the group adds to every request. */
+  readonly tokens: number;
+}
+
+/** Groups installed skills by plugin with their uses in the window; costliest first. */
+export function skillGroups(
+  installed: readonly Skill[],
+  counts: ReadonlyMap<string, number>,
+): readonly SkillGroup[] {
+  const groups = new Map<
+    string,
+    { name: string; isPlugin: boolean; skills: Skill[]; uses: number; tokens: number }
+  >();
+  for (const skill of installed) {
+    const key = skill.plugin ?? `skill:${skill.id}`;
+    let g = groups.get(key);
+    if (!g) {
+      g = {
+        name: skill.plugin ?? skill.id,
+        isPlugin: skill.plugin !== undefined,
+        skills: [],
+        uses: 0,
+        tokens: 0,
+      };
+      groups.set(key, g);
+    }
+    g.skills.push(skill);
+    g.uses += counts.get(skill.id) ?? 0;
+    g.tokens += skillListingTokens(skill);
+  }
+  return [...groups.values()].sort((a, b) => b.tokens - a.tokens);
 }
 
 /** Tokens a skill adds to every request: Claude Code lists each one as `name: description`. */
@@ -44,28 +75,7 @@ export class UnusedSkillsRule implements OptimizationRule {
   }
 
   evaluate(ctx: ReviewContext): readonly Recommendation[] {
-    const groups = new Map<string, Group>();
-    for (const skill of ctx.installedSkills) {
-      const key = skill.plugin ?? `skill:${skill.id}`;
-      let g = groups.get(key);
-      if (!g) {
-        g = {
-          name: skill.plugin ?? skill.id,
-          isPlugin: skill.plugin !== undefined,
-          skills: [],
-          uses: 0,
-          tokens: 0,
-        };
-        groups.set(key, g);
-      }
-      g.skills.push(skill);
-      g.uses += ctx.skillUseCounts.get(skill.id) ?? 0;
-      g.tokens += skillListingTokens(skill);
-    }
-
-    const unused = [...groups.values()]
-      .filter((g) => g.uses === 0)
-      .sort((a, b) => b.tokens - a.tokens);
+    const unused = skillGroups(ctx.installedSkills, ctx.skillUseCounts).filter((g) => g.uses === 0);
     if (unused.length === 0) return [];
 
     const skills = unused.reduce((n, g) => n + g.skills.length, 0);

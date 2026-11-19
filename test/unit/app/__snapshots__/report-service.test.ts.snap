@@ -1,0 +1,141 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`buildUsageReport > matches the snapshot 1`] = `
+{
+  "daily": [
+    {
+      "costUsd": 0,
+      "counts": {
+        "cacheCreation": 0,
+        "cacheRead": 0,
+        "input": 0,
+        "output": 0,
+      },
+      "day": "2026-11-15",
+      "tokens": 0,
+    },
+    {
+      "costUsd": 3.5,
+      "counts": {
+        "cacheCreation": 0,
+        "cacheRead": 0,
+        "input": 100,
+        "output": 0,
+      },
+      "day": "2026-11-16",
+      "tokens": 100,
+    },
+    {
+      "costUsd": 0,
+      "counts": {
+        "cacheCreation": 0,
+        "cacheRead": 0,
+        "input": 0,
+        "output": 0,
+      },
+      "day": "2026-11-17",
+      "tokens": 0,
+    },
+    {
+      "costUsd": 2,
+      "counts": {
+        "cacheCreation": 0,
+        "cacheRead": 0,
+        "input": 0,
+        "output": 50,
+      },
+      "day": "2026-11-18",
+      "tokens": 50,
+    },
+    {
+      "costUsd": 0,
+      "counts": {
+        "cacheCreation": 0,
+        "cacheRead": 0,
+        "input": 0,
+        "output": 0,
+      },
+      "day": "2026-11-19",
+      "tokens": 0,
+    },
+  ],
+  "findings": [
+    {
+      "actions": [],
+      "detail": "d",
+      "ruleId": "unused-skills",
+      "severity": "warn",
+      "title": "Unused",
+    },
+  ],
+  "generatedAt": "2026-11-19T10:00:00.000Z",
+  "models": [
+    {
+      "costUsd": 5,
+      "model": "claude-opus-5-5",
+      "tokens": 130,
+    },
+    {
+      "costUsd": 0.5,
+      "model": "claude-haiku-5-5",
+      "tokens": 20,
+    },
+  ],
+  "notes": [
+    "Could not load something",
+  ],
+  "since": "2026-11-14T22:00:00.000Z",
+  "summary": {
+    "autoCompactions": 2,
+    "costUsd": 5.5,
+    "installedSkills": 4,
+    "prompts": 12,
+    "sessions": 3,
+    "totalTokens": 150,
+    "usedSkills": 1,
+  },
+  "topSessions": [
+    {
+      "autoCompactions": 2,
+      "costUsd": 9,
+      "label": "Website UI review (bbbb2222)",
+      "lastActivity": "2026-11-19T10:00:00.000Z",
+      "project": "-Users-me-Workspace-site",
+      "prompts": 12,
+      "sessionId": "bbbb2222-pricey",
+      "title": {
+        "source": "custom",
+        "text": "Website UI review",
+      },
+      "tokens": 500,
+    },
+    {
+      "autoCompactions": 0,
+      "costUsd": 4,
+      "label": "cccc3333",
+      "lastActivity": "2026-11-19T10:00:00.000Z",
+      "project": "-Users-me-Workspace-site",
+      "prompts": 0,
+      "sessionId": "cccc3333-middle",
+      "tokens": 50,
+    },
+  ],
+  "until": "2026-11-19T10:00:00.000Z",
+  "unusedListingTokens": 54,
+  "unusedSkills": [
+    {
+      "isPlugin": true,
+      "listingTokens": 46,
+      "name": "mkt",
+      "skills": 2,
+    },
+    {
+      "isPlugin": false,
+      "listingTokens": 8,
+      "name": "write",
+      "skills": 1,
+    },
+  ],
+  "windowDays": 5,
+}
+`;

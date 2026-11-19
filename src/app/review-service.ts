@@ -58,6 +58,11 @@ const DAY_MS = 86_400_000;
  * (Strategy) and optionally asks an AI reviewer. A failing source or rule makes
  * the report partial (see `notes`) instead of failing the whole review.
  */
+export interface ReviewAnalysis {
+  readonly report: ReviewReport;
+  readonly context: ReviewContext;
+}
+
 export class ReviewService {
   constructor(private readonly deps: ReviewDeps) {}
 
@@ -73,6 +78,11 @@ export class ReviewService {
   }
 
   async review(options: ReviewOptions = {}): Promise<ReviewReport> {
+    return (await this.analyse(options)).report;
+  }
+
+  /** The review plus the data it was built from, so other views (reports) reuse one load. */
+  async analyse(options: ReviewOptions = {}): Promise<ReviewAnalysis> {
     const config = (await this.deps.config.load()).review;
     const windowDays = options.windowDays ?? config.windowDays;
     const now = this.deps.clock.now();
@@ -180,7 +190,7 @@ export class ReviewService {
       }
     }
 
-    return {
+    const report: ReviewReport = {
       scope,
       since: scope.kind === 'session' ? (sessions[0]?.firstActivity ?? since) : since,
       until: now,
@@ -190,6 +200,7 @@ export class ReviewService {
       notes,
       ...(ai ? { ai } : {}),
     };
+    return { report, context: ctx };
   }
 
   private resolveSession(

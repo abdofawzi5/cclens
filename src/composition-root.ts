@@ -22,6 +22,9 @@ import { ClaudeCliReviewer } from './adapters/claude/review/claude-cli-reviewer.
 import { JsonConfigStore } from './adapters/storage/json-config-store.js';
 import { JsonlEventStore } from './adapters/storage/jsonl-event-store.js';
 import { FileHookRunnerStore } from './adapters/storage/file-hook-runner-store.js';
+import { AtomicFileWriter } from './adapters/storage/atomic-file-writer.js';
+import { ChartJsAsset } from './adapters/system/chartjs-asset.js';
+import { SystemOpener } from './adapters/system/system-opener.js';
 import { FileLogger } from './adapters/system/file-logger.js';
 import { NodeFileProbe } from './adapters/system/node-file-probe.js';
 import { NodeProcessRunner } from './adapters/system/node-process-runner.js';
@@ -36,9 +39,12 @@ import type {
   Clock,
   ConfigStore,
   FileProbe,
+  FileWriter,
   Logger,
+  Opener,
   Paths,
   ProcessRunner,
+  ScriptAsset,
 } from './core/ports/infrastructure.js';
 import type { UsageEventStore, UsageHistorySource } from './core/ports/usage.js';
 
@@ -76,6 +82,12 @@ export interface Container {
   /** Shell command that starts this cclens CLI; written into Claude Code hooks. */
   readonly selfCommand: string;
   readonly nodeVersion: string;
+  /** Writes files the user asked for (`cclens report --out`). */
+  readonly fileWriter: FileWriter;
+  /** Opens a report in the default browser (`--open`). */
+  readonly opener: Opener;
+  /** Chart.js source, inlined into HTML reports. */
+  readonly chartScript: ScriptAsset;
 }
 
 export interface ContainerOptions {
@@ -184,6 +196,9 @@ export function createContainer(options: ContainerOptions = {}): Container {
     aiReviewer: new ClaudeCliReviewer(runner, { command: env['CCLENS_CLAUDE_BIN'] ?? 'claude' }),
     selfCommand: o.selfCommand ?? defaultSelfCommand(options.env),
     nodeVersion: process.version,
+    fileWriter: new AtomicFileWriter(),
+    opener: new SystemOpener(runner),
+    chartScript: new ChartJsAsset(),
     ...o,
   };
 }

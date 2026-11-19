@@ -1,6 +1,6 @@
 ---
-description: Show skill usage, token stats, optimization advice or skill search from cclens
-argument-hint: '[skills | usage | tokens [view] | review | search <words> | doctor] [options]'
+description: Show skill usage, token stats, optimization advice, reports with charts or skill search from cclens
+argument-hint: '[skills | usage | tokens [view] | review | report | search <words> | doctor] [options]'
 allowed-tools: Bash(cclens:*), Bash(eval:*), Bash(cat:*)
 ---
 

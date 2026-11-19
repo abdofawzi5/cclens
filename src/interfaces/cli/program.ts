@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { ConfigService } from '../../app/config-service.js';
 import { DoctorService } from '../../app/doctor-service.js';
 import { InventoryService } from '../../app/inventory/inventory-service.js';
+import { ReportService } from '../../app/report-service.js';
 import { ReviewService } from '../../app/review-service.js';
 import { EngineService } from '../../app/search/engine-service.js';
 import { SearchService } from '../../app/search/search-service.js';
@@ -16,6 +17,7 @@ import { ConfigCommand } from './commands/config-command.js';
 import { DoctorCommand } from './commands/doctor-command.js';
 import { HookCommand } from './commands/hook-command.js';
 import { InitCommand } from './commands/init-command.js';
+import { ReportCommand } from './commands/report-command.js';
 import { ReviewCommand } from './commands/review-command.js';
 import { EnginesCommand } from './commands/engines-command.js';
 import { SearchCommand } from './commands/search-command.js';
@@ -31,6 +33,7 @@ const COMMANDS: readonly CliCommand[] = [
   new UsageCommand(),
   new TokensCommand(),
   new ReviewCommand(),
+  new ReportCommand(),
   new SearchCommand(),
   new EnginesCommand(),
   new InitCommand(),
@@ -52,6 +55,16 @@ export function buildServices(c: Container): Services {
     metadata: c.repoMetadata,
     skills: c.skillSource,
   });
+  const review = new ReviewService({
+    config,
+    skills: c.skillSource,
+    usage,
+    tokens: c.tokens,
+    activity: c.activitySource,
+    clock: c.clock,
+    rules: defaultRules(),
+    ai: c.aiReviewer,
+  });
   return {
     config,
     usage,
@@ -59,16 +72,8 @@ export function buildServices(c: Container): Services {
     tokens: new TokenService(c.tokens, c.activitySource),
     search,
     engines: new EngineService(config, c.engineFactory, search),
-    review: new ReviewService({
-      config,
-      skills: c.skillSource,
-      usage,
-      tokens: c.tokens,
-      activity: c.activitySource,
-      clock: c.clock,
-      rules: defaultRules(),
-      ai: c.aiReviewer,
-    }),
+    review,
+    report: new ReportService(review),
     setup: new SetupService({
       paths: c.paths,
       configStore: c.configStore,

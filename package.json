@@ -63,6 +63,7 @@
   ],
   "dependencies": {
     "ccusage": "^20.0.51",
+    "chart.js": "^4.6.1",
     "cli-table3": "^0.6.5",
     "commander": "^15.1.0",
     "picocolors": "^1.1.1",
