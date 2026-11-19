@@ -1,4 +1,5 @@
 import type { Recommendation } from './recommendation.js';
+import type { SessionTitle } from './session-labels.js';
 import type { Skill } from './skill.js';
 import type { SessionTokens, TokenBucket } from './tokens.js';
 
@@ -15,11 +16,14 @@ export interface SessionActivity {
   readonly manualCompactions: number;
   /** Largest context size seen right before a compaction, in tokens. */
   readonly peakContextTokens?: number;
+  /** The session's name, when the transcript gives one. */
+  readonly title?: SessionTitle;
 }
 
 /** A review covers either every session in a window, or one session. */
 export type ReviewScope =
-  { readonly kind: 'window' } | { readonly kind: 'session'; readonly sessionId: string };
+  | { readonly kind: 'window' }
+  | { readonly kind: 'session'; readonly sessionId: string; readonly title?: SessionTitle };
 
 /** Everything a rule may look at. Built once per review by the ReviewService. */
 export interface ReviewContext {

@@ -2,6 +2,7 @@ import pc from 'picocolors';
 import type { RuleInfo } from '../../app/review-service.js';
 import type { Recommendation, Severity } from '../../core/domain/recommendation.js';
 import type { ReviewReport } from '../../core/domain/review.js';
+import { SessionLabels } from '../../core/domain/session-labels.js';
 import { localDay } from '../../core/util/format.js';
 import { compact, usd } from './format.js';
 import type { Renderer } from './renderer.js';
@@ -47,7 +48,7 @@ export class ReviewRenderer implements Renderer {
     const s = r.summary;
     const heading =
       r.scope.kind === 'session'
-        ? `Review of session ${r.scope.sessionId}`
+        ? `Review of session ${r.scope.title ? SessionLabels.from([r.scope]).label(r.scope.sessionId) : r.scope.sessionId}`
         : `Review of ${localDay(r.since)} to ${localDay(r.until)}`;
     const facts = [
       `${compact(s.totalTokens)} tokens`,

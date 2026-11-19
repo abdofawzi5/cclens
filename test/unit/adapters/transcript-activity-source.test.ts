@@ -94,6 +94,7 @@ describe('TranscriptActivitySource', () => {
       autoCompactions: 2,
       manualCompactions: 1,
       peakContextTokens: 500_000,
+      title: { text: 'do the thing', source: 'first-prompt' },
     });
     expect(logger.entries.some((e) => e.message.includes('unreadable'))).toBe(true);
   });
@@ -107,6 +108,53 @@ describe('TranscriptActivitySource', () => {
     const list = await new TranscriptActivitySource(dir).read(new Date(at(20)));
     expect(list.map((a) => [a.sessionId, a.prompts])).toEqual([['s1', 1]]);
     expect(list[0]).not.toHaveProperty('peakContextTokens');
+  });
+
+  it('names sessions by their last custom title, else the first typed prompt', async () => {
+    const title = (text: string, sessionId = 's1') =>
+      JSON.stringify({ type: 'custom-title', customTitle: text, sessionId });
+    await write('-p/s1.jsonl', [
+      title('Old name'),
+      prompt('u1', 2, { message: { content: 'second prompt' } }),
+      prompt('u0', 1, { message: { content: [{ type: 'text', text: '  first\n prompt ' }] } }),
+      title('  Website   UI review  '),
+      '{"type":"custom-title","customTitle":42}',
+    ]);
+    await write('-p/s2.jsonl', [
+      prompt('v1', 1, {
+        sessionId: 's2',
+        message: {
+          content:
+            '<command-message>write-article</command-message>\n<command-name>/write-article</command-name>\n<command-args>caching</command-args>',
+        },
+      }),
+    ]);
+    await write('-p/s3.jsonl', [
+      prompt('w1', 1, { sessionId: 's3', message: { content: '<system-reminder>x' } }),
+    ]);
+    const byId = new Map(
+      (await new TranscriptActivitySource(dir).read()).map((a) => [a.sessionId, a.title]),
+    );
+    expect(byId.get('s1')).toEqual({ text: 'Website UI review', source: 'custom' });
+    expect(byId.get('s2')).toEqual({ text: '/write-article caching', source: 'first-prompt' });
+    expect(byId.get('s3')).toBeUndefined();
+  });
+
+  it('registers scheduled sessions that have a title but no typed prompt', async () => {
+    await write('-p/sched.jsonl', [
+      JSON.stringify({ type: 'custom-title', customTitle: 'Daily episode', sessionId: 'sched' }),
+      prompt('t1', 1, {
+        sessionId: 'sched',
+        origin: { kind: 'task-notification', subkind: 'scheduled-trigger' },
+        message: { content: 'run the daily job' },
+      }),
+    ]);
+    const [s] = await new TranscriptActivitySource(dir).read();
+    expect(s).toMatchObject({
+      sessionId: 'sched',
+      prompts: 0,
+      title: { text: 'Daily episode', source: 'custom' },
+    });
   });
 
   it('returns nothing for a missing folder', async () => {

@@ -105,6 +105,18 @@ describe('ClaudeCliReviewer (contract, claude -p --output-format json)', () => {
     expect(prompt).toContain('at most 5 further');
   });
 
+  it('never sends session titles or prompt text', () => {
+    const titled = {
+      ...ctx,
+      activity: ctx.activity.map((a) => ({
+        ...a,
+        title: { text: 'Secret client project', source: 'custom' as const },
+      })),
+    };
+    const named = findings.map((f) => ({ ...f, detail: 'Largest: Secret client project (abc)' }));
+    expect(buildPrompt(titled, named, 5)).not.toContain('Secret client project');
+  });
+
   it('explains a missing login', () => {
     expect(() => parseReview(fixture('not-logged-in.json'), '', 0, 5)).toThrow(
       /Not logged in.*sign in/,

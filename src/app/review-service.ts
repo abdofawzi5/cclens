@@ -1,4 +1,5 @@
 import { compareRecommendations, type Recommendation } from '../core/domain/recommendation.js';
+import { SessionLabels } from '../core/domain/session-labels.js';
 import type {
   AiReviewStatus,
   ReviewContext,
@@ -115,8 +116,10 @@ export class ReviewService {
     let sessions = allSessions;
     let activity = allActivity;
     if (sessionMode) {
-      const id = this.resolveSession(options, allSessions, allActivity);
-      scope = { kind: 'session', sessionId: id };
+      const labels = SessionLabels.from(allActivity);
+      const id = this.resolveSession(options, allSessions, allActivity, labels);
+      const title = labels.title(id);
+      scope = { kind: 'session', sessionId: id, ...(title ? { title } : {}) };
       sessions = allSessions.filter((s) => s.sessionId === id);
       activity = allActivity.filter((a) => a.sessionId === id);
     }
@@ -193,6 +196,7 @@ export class ReviewService {
     options: ReviewOptions,
     sessions: readonly SessionTokens[],
     activity: readonly SessionActivity[],
+    labels: SessionLabels,
   ): string {
     const ids = new Map<string, Date>();
     for (const s of [...sessions, ...activity]) {
@@ -205,15 +209,21 @@ export class ReviewService {
       return latest[0];
     }
     const wanted = options.sessionId ?? '';
-    const matches = [...ids.keys()].filter((id) => id.startsWith(wanted));
-    if (matches.length === 1 && matches[0]) return matches[0];
-    if (matches.length === 0) {
+    const match = labels.resolve(wanted, ids.keys());
+    if (match.kind === 'one') return match.sessionId;
+    if (match.kind === 'none') {
       throw new ValidationError(
-        `No session matches "${wanted}". List sessions with \`cclens tokens session\`.`,
+        `No session matches "${wanted}" by id or title. List sessions with \`cclens tokens session\`.`,
       );
     }
+    const shown = match.sessionIds.slice(0, 5).map((id) => `  ${labels.label(id)}`);
+    const more = match.sessionIds.length > 5 ? [`  …and ${match.sessionIds.length - 5} more`] : [];
     throw new ValidationError(
-      `"${wanted}" matches ${matches.length} sessions; use more characters of the id.`,
+      [
+        `"${wanted}" matches ${match.sessionIds.length} sessions; use more of the id or title:`,
+        ...shown,
+        ...more,
+      ].join('\n'),
     );
   }
 }

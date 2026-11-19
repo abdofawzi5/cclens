@@ -1,4 +1,5 @@
 import type { Recommendation, Severity } from '../domain/recommendation.js';
+import { SessionLabels } from '../domain/session-labels.js';
 import type { ReviewContext } from '../domain/review.js';
 import { totalTokens } from '../domain/tokens.js';
 import type { OptimizationRule } from '../ports/review.js';
@@ -28,6 +29,7 @@ export class UsageSpikesRule implements OptimizationRule {
   }
 
   evaluate(ctx: ReviewContext): readonly Recommendation[] {
+    const labels = SessionLabels.from(ctx.activity);
     const days = ctx.daily.map((d) => ({ day: d.period, tokens: totalTokens(d.counts) }));
     if (days.length < this.options.minDays) return [];
     const typical = median(days.map((d) => d.tokens));
@@ -43,7 +45,7 @@ export class UsageSpikesRule implements OptimizationRule {
       const heaviest = ctx.sessions
         .filter((s) => localDay(s.lastActivity) === d.day)
         .sort((a, b) => totalTokens(b.counts) - totalTokens(a.counts))[0];
-      const who = heaviest ? `, mostly session ${heaviest.sessionId.slice(0, 8)}` : '';
+      const who = heaviest ? `, mostly session ${labels.label(heaviest.sessionId)}` : '';
       return `${d.day}: ${compact(d.tokens)} (${(d.tokens / typical).toFixed(1)}× typical${who})`;
     });
     const first = spikes[0];

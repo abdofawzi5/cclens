@@ -1,4 +1,5 @@
 import type { Recommendation, Severity } from '../domain/recommendation.js';
+import { SessionLabels } from '../domain/session-labels.js';
 import type { ReviewContext } from '../domain/review.js';
 import type { OptimizationRule } from '../ports/review.js';
 import { compact } from '../util/format.js';
@@ -27,6 +28,7 @@ export class FrequentCompactionRule implements OptimizationRule {
   }
 
   evaluate(ctx: ReviewContext): readonly Recommendation[] {
+    const labels = SessionLabels.from(ctx.activity);
     const hits = ctx.activity
       .filter((a) => a.autoCompactions >= this.options.minAutoCompactions)
       .sort((a, b) => b.autoCompactions - a.autoCompactions);
@@ -36,7 +38,7 @@ export class FrequentCompactionRule implements OptimizationRule {
     const peak = Math.max(...hits.map((a) => a.peakContextTokens ?? 0));
     const top = hits
       .slice(0, this.options.listTop)
-      .map((a) => `${a.sessionId.slice(0, 8)} (${a.autoCompactions}×)`);
+      .map((a) => `${labels.label(a.sessionId)} (${a.autoCompactions}×)`);
 
     return [
       {

@@ -22,7 +22,7 @@ cclens reads Claude Code's own data on this machine and answers from it. Run it 
 | Which skills they never use                           | `cclens skills --unused --since 30d`                                 |
 | Skill use over time or per project                    | `cclens usage --by skill\|day\|project\|source --since 7d`           |
 | Tokens and estimated cost                             | `cclens tokens daily\|weekly\|monthly\|session\|project\|blocks`     |
-| How to use fewer tokens                               | `cclens review --days 30` (add `--last` for the latest session)      |
+| How to use fewer tokens                               | `cclens review --days 30` (`--last`, or `--session <id or title>`)   |
 | A skill for some task                                 | `cclens search <words>` (`--min-stars 50`, `--sort stars\|installs`) |
 | Whether recording works                               | `cclens doctor`                                                      |
 

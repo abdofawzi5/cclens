@@ -5,6 +5,7 @@ import { UsageService } from '../../../src/app/usage-service.js';
 import type { Skill } from '../../../src/core/domain/skill.js';
 import { event, FixedClock, MemoryEventStore } from '../../support/fakes.js';
 import { FakeTokens } from '../../support/fake-tokens.js';
+import { activity } from '../../support/review.js';
 
 const SKILLS: Skill[] = [
   { id: 'marketing:seo-audit', name: 'seo-audit', scope: 'plugin', plugin: 'marketing' },
@@ -75,6 +76,31 @@ describe('TokenService', () => {
   it('sorts sessions by cost and keeps the top n', async () => {
     const r = await svc.report('session', {}, 1);
     expect(r.view === 'session' && r.rows[0]?.sessionId).toBe('expensive');
+  });
+
+  it('names sessions from transcripts, and still works when titles fail', async () => {
+    const seen: (Date | undefined)[] = [];
+    const titled = new TokenService(new FakeTokens(), {
+      read: (since) => {
+        seen.push(since);
+        return Promise.resolve([
+          activity('expensive', { title: { text: 'Website UI review', source: 'custom' } }),
+        ]);
+      },
+    });
+    const since = new Date('2026-11-01T00:00:00Z');
+    const r = await titled.report('session', { since });
+    expect(seen).toEqual([since]);
+    expect(r.view === 'session' && r.rows.map((x) => x.title?.text)).toEqual([
+      'Website UI review',
+      undefined,
+    ]);
+
+    const broken = new TokenService(new FakeTokens(), {
+      read: () => Promise.reject(new Error('unreadable')),
+    });
+    const b = await broken.report('session');
+    expect(b.view === 'session' && b.rows.every((x) => x.title === undefined)).toBe(true);
   });
 
   it('returns project and block views', async () => {

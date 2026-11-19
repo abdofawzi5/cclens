@@ -7,7 +7,12 @@ import type {
   TokenFilter,
   UsageBlock,
 } from '../core/domain/tokens.js';
+import type { SessionTitle } from '../core/domain/session-labels.js';
+import type { SessionActivitySource } from '../core/ports/review.js';
 import type { TokenUsageProvider } from '../core/ports/tokens.js';
+
+/** A session's token use plus its name, when the transcript has one. */
+export type TitledSessionTokens = SessionTokens & { readonly title?: SessionTitle };
 
 export type TokenView = 'daily' | 'weekly' | 'monthly' | 'session' | 'project' | 'blocks';
 
@@ -34,7 +39,7 @@ export type TokenReport =
     }
   | {
       readonly view: 'session';
-      readonly rows: readonly SessionTokens[];
+      readonly rows: readonly TitledSessionTokens[];
       readonly totals: TokenTotals;
     }
   | {
@@ -51,7 +56,11 @@ function totalsOf(rows: readonly { counts: TokenCounts; costUsd: number }[]): To
 
 /** Token usage reports for every view, each with totals. */
 export class TokenService {
-  constructor(private readonly provider: TokenUsageProvider) {}
+  /** `titles` names sessions in the session view; without it rows show ids only. */
+  constructor(
+    private readonly provider: TokenUsageProvider,
+    private readonly titles?: SessionActivitySource,
+  ) {}
 
   async report(view: TokenView, filter: TokenFilter = {}, limit?: number): Promise<TokenReport> {
     const latest = <T>(rows: readonly T[]): readonly T[] =>
@@ -68,8 +77,14 @@ export class TokenService {
         return { view, rows, totals: totalsOf(rows) };
       }
       case 'session': {
-        const all = await this.provider.bySession(filter);
-        const rows = top([...all].sort((a, b) => b.costUsd - a.costUsd));
+        const [all, titles] = await Promise.all([
+          this.provider.bySession(filter),
+          this.sessionTitles(filter),
+        ]);
+        const rows = top([...all].sort((a, b) => b.costUsd - a.costUsd)).map((r) => {
+          const title = titles.get(r.sessionId);
+          return title ? { ...r, title } : r;
+        });
         return { view, rows, totals: totalsOf(rows) };
       }
       case 'project': {
@@ -80,6 +95,19 @@ export class TokenService {
         const rows = latest(await this.provider.blocks(filter));
         return { view, rows, totals: totalsOf(rows) };
       }
+    }
+  }
+
+  /** Titles are a nicety: if transcripts cannot be read, the report still works. */
+  private async sessionTitles(filter: TokenFilter): Promise<ReadonlyMap<string, SessionTitle>> {
+    if (!this.titles) return new Map();
+    try {
+      const activity = await this.titles.read(filter.since);
+      const out = new Map<string, SessionTitle>();
+      for (const a of activity) if (a.title) out.set(a.sessionId, a.title);
+      return out;
+    } catch {
+      return new Map();
     }
   }
 }

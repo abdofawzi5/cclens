@@ -56,7 +56,7 @@ export function buildServices(c: Container): Services {
     config,
     usage,
     inventory: new InventoryService(c.skillSource, usage),
-    tokens: new TokenService(c.tokens),
+    tokens: new TokenService(c.tokens, c.activitySource),
     search,
     engines: new EngineService(config, c.engineFactory, search),
     review: new ReviewService({

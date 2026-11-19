@@ -1,6 +1,7 @@
 import { Argument, type Command } from 'commander';
 import pc from 'picocolors';
 import { TOKEN_VIEWS, type TokenReport, type TokenView } from '../../../app/token-service.js';
+import { SessionLabels } from '../../../core/domain/session-labels.js';
 import type { TokenCounts } from '../../../core/domain/tokens.js';
 import { totalTokens } from '../../../core/domain/tokens.js';
 import { compact, shortProject, usd } from '../../render/format.js';
@@ -49,7 +50,7 @@ function toRows(report: TokenReport, home: string): Row[] {
       return report.rows.map((r) => ({ label: r.period, counts: r.counts, costUsd: r.costUsd }));
     case 'session':
       return report.rows.map((r) => ({
-        label: r.sessionId.slice(0, 8),
+        label: SessionLabels.from([r]).label(r.sessionId, 40),
         detail: `${shortProject(r.project, home)} · ${r.lastActivity.toLocaleString()}`,
         counts: r.counts,
         costUsd: r.costUsd,

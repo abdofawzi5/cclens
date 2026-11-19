@@ -119,7 +119,7 @@ There are two supported paths, and both end in the same state.
 | **3. Review**                | Analyzer rules + recommendation engine; `--ai` reviewer through `claude -p`                                                                                     | Each rule has fixture tests; the report lists the estimated tokens each fix would save. Done 2026-11-19 (ADR 0005)                          |
 | **4. Search**                | Engine port, GitHub / SkillsMP / skills.sh adapters, generic HTTP engine, aggregator (dedupe + star enrichment + ranking), cache, `engines` command             | Results from all enabled engines merge correctly; turning an engine off works; one engine failing doesn't break the others. Done 2026-11-19 |
 | **5. Distribution**          | Plugin manifest + marketplace, README, docs, changesets, npm publish dry run                                                                                    | `npm pack` installs cleanly; plugin install works in a clean Claude Code. Done 2026-11-19 (ADR 0006)                                        |
-| **6. Session names**         | Show each session's title (`custom-title`, else first prompt) wherever an ID appears; `review --session` accepts a title                                        | Every session row and finding shows `Title (abcd1234)`; JSON gains `title`                                                                  |
+| **6. Session names**         | Show each session's title (`custom-title`, else first prompt) wherever an ID appears; `review --session` accepts a title                                        | Every session row and finding shows `Title (abcd1234)`; JSON gains `title`. Done 2026-11-19                                                 |
 | **7. Reports and charts**    | `cclens report` (markdown, JSON, self-contained HTML with SVG charts); skill tells Claude to chart `--json` output when it can                                  | One HTML file with no network requests; its numbers match `review` and `tokens`                                                             |
 | **8. Agents**                | Agent inventory + usage: calls, tokens and estimated cost per agent type; `cclens agents`; `unused-agents` and `expensive-agents` rules                         | Fixture transcripts with subagents give exact counts; unused agents listed like unused skills                                               |
 | **9. Recurring jobs**        | Group sessions from the same scheduled or repeated task; cost per run and per month; `cclens jobs`                                                              | Daily scheduled runs show as one job with run count, average and 30-day cost                                                                |
@@ -133,7 +133,9 @@ There are two supported paths, and both end in the same state.
 
 Proposed 2026-11-19 after the first real report showed almost every installed skill unused, the costliest sessions known only by ID, and many repeated scheduled sessions. Each phase is one minor release, keeps the layer rule (`interfaces → app → core ← adapters`), and reads only local files.
 
-### Phase 6: session names (0.2.0)
+### Phase 6: session names (0.2.0), done 2026-11-19
+
+Shipped as planned. Also found: scheduled runs have no typed prompt, so the transcript adapter now registers a session on any user turn (prompts still count only typed ones).
 
 - **Data:** transcripts hold `{"type":"custom-title","customTitle":"…"}` records (the name shown in Claude Code and the desktop app); the last one wins. Without one, use the first typed prompt, cut to 60 characters.
 - **Design:** `TranscriptActivitySource` already reads every transcript line once, so it also collects `title` and `titleSource: 'custom' | 'first-prompt'` into `SessionActivity`; no second scan. A small `SessionLabels` value object (core) formats `Title (abcd1234)` and resolves a `--session` argument that is an ID prefix or a title substring (several matches → list them and stop).
@@ -189,7 +191,7 @@ Proposed 2026-11-19 after the first real report showed almost every installed sk
 
 1. ~~Chart drawing~~: decided 2026-11-19: Chart.js, inlined into the HTML file.
 2. ~~Agent cost~~: decided 2026-11-19: both, priced per message and share of session (see Phase 8).
-3. Do scheduled-task sessions carry a marker in the transcript, or is title grouping the only signal?
+3. ~~Scheduled-session marker~~: answered 2026-11-19: yes. A scheduled run starts with a user line whose `origin` is `{"kind":"task-notification","subkind":"scheduled-trigger"}`. Phase 9 groups by that marker plus the title.
 4. ~~Budget warnings~~: decided 2026-11-19: added (Phase 10), off until `cclens budget set`.
 
 ## 7. Quality bar

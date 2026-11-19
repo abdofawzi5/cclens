@@ -6,3 +6,4 @@ export * from './search.js';
 export * from './review.js';
 export * from './commands.js';
 export * from './hooks.js';
+export * from './session-labels.js';

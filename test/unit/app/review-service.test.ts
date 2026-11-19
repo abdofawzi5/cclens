@@ -144,6 +144,24 @@ describe('ReviewService', () => {
     expect(r.since).toBeInstanceOf(Date);
   });
 
+  it('finds a session by title and lists the choices when several match', async () => {
+    const acts = [
+      activity('expensive', { title: { text: 'Website UI review', source: 'custom' } }),
+      activity('cheap', { title: { text: 'Daily episode', source: 'custom' } }),
+      activity('later-1', { title: { text: 'Daily episode', source: 'custom' } }),
+    ];
+    const { svc } = service({ activity: { read: () => Promise.resolve(acts) } });
+    const r = await svc.review({ sessionId: 'website' });
+    expect(r.scope).toEqual({
+      kind: 'session',
+      sessionId: 'expensive',
+      title: { text: 'Website UI review', source: 'custom' },
+    });
+    await expect(svc.review({ sessionId: 'daily' })).rejects.toThrow(
+      /matches 2 sessions[\s\S]*Daily episode \(cheap\)[\s\S]*Daily episode \(later-1\)/,
+    );
+  });
+
   it('explains unknown, ambiguous and missing sessions', async () => {
     const { svc } = service();
     await expect(svc.review({ sessionId: 'zzz' })).rejects.toThrow(/No session matches "zzz"/);
