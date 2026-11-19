@@ -33,6 +33,7 @@ import { PathsCommand } from './commands/paths-command.js';
 import { SkillsCommand } from './commands/skills-command.js';
 import { StatuslineCommand } from './commands/statusline-command.js';
 import { TokensCommand } from './commands/tokens-command.js';
+import { UiCommand } from './commands/ui-command.js';
 import { UninstallCommand } from './commands/uninstall-command.js';
 import { UsageCommand } from './commands/usage-command.js';
 
@@ -43,6 +44,7 @@ const COMMANDS: readonly CliCommand[] = [
   new TokensCommand(),
   new ReviewCommand(),
   new ReportCommand(),
+  new UiCommand(),
   new ContextCommand(),
   new AgentsCommand(),
   new JobsCommand(),

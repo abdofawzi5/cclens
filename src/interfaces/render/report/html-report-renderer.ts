@@ -2,7 +2,7 @@ import type { UsageReport } from '../../../core/domain/report.js';
 import { localDay } from '../../../core/util/format.js';
 import { compact, shortProject, truncate, usd } from '../format.js';
 import type { Renderer } from '../renderer.js';
-import type { ChartRenderer, ChartSpec } from './chart-renderer.js';
+import { type ChartRenderer, type ChartSpec, safeForScript } from './chart-renderer.js';
 import { escapeHtml as h } from './html.js';
 
 const TOP_CHART_ROWS = 10;
@@ -12,10 +12,20 @@ const TOP_CHART_ROWS = 10;
  * inline and the chart library is embedded, so the file opens offline and makes
  * no network requests. Every chart has a table with the same numbers.
  */
+/** Extra markup for the live dashboard (`cclens ui`); the saved file has none. */
+export interface HtmlPageExtras {
+  /** HTML placed under the header line, e.g. window links. Must be escaped by the caller. */
+  readonly toolbar?: string;
+  /** Inline script appended to the page. */
+  readonly script?: string;
+  readonly title?: string;
+}
+
 export class HtmlReportRenderer implements Renderer {
   constructor(
     private readonly charts: ChartRenderer,
     private readonly home?: string,
+    private readonly extras: HtmlPageExtras = {},
   ) {}
 
   render(data: unknown): string {
@@ -133,17 +143,18 @@ ${table(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>cclens report ${h(range)}</title>
+<title>${h(this.extras.title ?? 'cclens report')} ${h(range)}</title>
 <style>${STYLE}</style>
 ${this.charts.head()}
 </head>
 <body>
 <main>
-<header><h1>cclens report</h1><p class="muted">${h(range)} · ${r.windowDays} days · generated ${h(r.generatedAt.toLocaleString())}</p></header>
+<header><h1>${h(this.extras.title ?? 'cclens report')}</h1><p class="muted">${h(range)} · ${r.windowDays} days · generated ${h(r.generatedAt.toLocaleString())}</p>${this.extras.toolbar ?? ''}</header>
 ${sections.join('\n')}
 <footer class="muted">Made by cclens from local Claude Code data. Charts by Chart.js (MIT license).</footer>
 </main>
 ${this.charts.script(specs)}
+${this.extras.script ? `<script>${safeForScript(this.extras.script)}</script>` : ''}
 </body>
 </html>
 `;
@@ -224,4 +235,9 @@ summary { cursor: pointer; color: var(--text-secondary); }
 .sev-high { color: var(--high); }
 code { font-size: 13px; overflow-wrap: anywhere; }
 footer { margin-top: 24px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; font-size: 13px; }
+.toolbar a { color: var(--text-secondary); text-decoration: none; border: 1px solid var(--border); border-radius: 999px; padding: 2px 10px; }
+.toolbar a:hover { border-color: var(--series-1); }
+.toolbar a[aria-current="page"] { background: var(--series-1); border-color: var(--series-1); color: #fff; }
+.toolbar .status { margin-left: auto; color: var(--text-muted); }
 `;

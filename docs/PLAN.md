@@ -191,6 +191,8 @@ Shipped as planned. Also found: scheduled runs have no typed prompt, so the tran
 
 `cclens ui` serves the Phase 7 `UsageReport` model from a local-only HTTP server with the same charts and live refresh. It adds no new data, only a view.
 
+- **As built:** `cclens ui` serves the `cclens report` HTML page (same renderer, same Chart.js charts and tables) at `http://127.0.0.1:4477/`, falling back to a free port when 4477 is taken. `/api/report` returns the same JSON as `cclens --json report`, and `/api/stamp` a fingerprint of the data. The page has 7/14/30/90-day links and polls the stamp every 30 seconds (not while the tab is hidden), reloading and keeping its scroll position when the data changed. A report is rebuilt at most once a minute per window, one build at a time. It listens on loopback only, refuses requests whose Host header is not a loopback name (DNS rebinding), answers only GET and HEAD, and sends a Content-Security-Policy that allows no network access beyond its own origin.
+
 ### Open questions for these phases
 
 1. ~~Chart drawing~~: decided 2026-11-19: Chart.js, inlined into the HTML file.
