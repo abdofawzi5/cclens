@@ -2,7 +2,7 @@
 
 > **Claude Code Lens**: see what Claude Code is doing for you. It shows which skills you have, which you use, where your tokens go, and how to use fewer. It also finds new skills across the main skill registries.
 
-Status: Phases 0–5 done; the dashboard (Phase 6) is optional. Read with [ARCHITECTURE.md](ARCHITECTURE.md).
+Status: Phases 0–5 done and 0.1.0 published as `@abdofawzi5/cclens`; Phases 6–12 are planned in section 6.1. Read with [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ---
 
@@ -111,17 +111,76 @@ There are two supported paths, and both end in the same state.
 
 ## 6. Phases and milestones
 
-| Phase                       | Scope                                                                                                                                                           | Done when                                                                                                                                   |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| **0. Foundations**          | Repo scaffold, tooling, CI, domain types, ports, composition root, config, error model. Verify the external APIs (ccusage exports, SkillsMP, skills.sh, GitHub) | `pnpm test` and CI are green; an ADR is recorded for each external integration                                                              |
-| **1. Install and capture**  | `init` / `uninstall` / `doctor`, settings merger, `hook` command, event store, legacy-log migration, transcript backfill                                        | A fresh machine logs a skill use end to end; uninstall restores `settings.json` exactly                                                     |
-| **2. Stats**                | `skills` (inventory sources), `usage`, `tokens` (ccusage adapter), renderers (table/json/markdown)                                                              | Numbers match a manual count on fixture data                                                                                                |
-| **3. Review**               | Analyzer rules + recommendation engine; `--ai` reviewer through `claude -p`                                                                                     | Each rule has fixture tests; the report lists the estimated tokens each fix would save. Done 2026-11-19 (ADR 0005)                          |
-| **4. Search**               | Engine port, GitHub / SkillsMP / skills.sh adapters, generic HTTP engine, aggregator (dedupe + star enrichment + ranking), cache, `engines` command             | Results from all enabled engines merge correctly; turning an engine off works; one engine failing doesn't break the others. Done 2026-11-19 |
-| **5. Distribution**         | Plugin manifest + marketplace, README, docs, changesets, npm publish dry run                                                                                    | `npm pack` installs cleanly; plugin install works in a clean Claude Code. Done 2026-11-19 (ADR 0006)                                        |
-| **6. Dashboard** (optional) | `cclens ui`: local web UI over the same services                                                                                                                | Charts render from the same JSON the CLI produces                                                                                           |
+| Phase                        | Scope                                                                                                                                                           | Done when                                                                                                                                   |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| **0. Foundations**           | Repo scaffold, tooling, CI, domain types, ports, composition root, config, error model. Verify the external APIs (ccusage exports, SkillsMP, skills.sh, GitHub) | `pnpm test` and CI are green; an ADR is recorded for each external integration                                                              |
+| **1. Install and capture**   | `init` / `uninstall` / `doctor`, settings merger, `hook` command, event store, legacy-log migration, transcript backfill                                        | A fresh machine logs a skill use end to end; uninstall restores `settings.json` exactly                                                     |
+| **2. Stats**                 | `skills` (inventory sources), `usage`, `tokens` (ccusage adapter), renderers (table/json/markdown)                                                              | Numbers match a manual count on fixture data                                                                                                |
+| **3. Review**                | Analyzer rules + recommendation engine; `--ai` reviewer through `claude -p`                                                                                     | Each rule has fixture tests; the report lists the estimated tokens each fix would save. Done 2026-11-19 (ADR 0005)                          |
+| **4. Search**                | Engine port, GitHub / SkillsMP / skills.sh adapters, generic HTTP engine, aggregator (dedupe + star enrichment + ranking), cache, `engines` command             | Results from all enabled engines merge correctly; turning an engine off works; one engine failing doesn't break the others. Done 2026-11-19 |
+| **5. Distribution**          | Plugin manifest + marketplace, README, docs, changesets, npm publish dry run                                                                                    | `npm pack` installs cleanly; plugin install works in a clean Claude Code. Done 2026-11-19 (ADR 0006)                                        |
+| **6. Session names**         | Show each session's title (`custom-title`, else first prompt) wherever an ID appears; `review --session` accepts a title                                        | Every session row and finding shows `Title (abcd1234)`; JSON gains `title`                                                                  |
+| **7. Reports and charts**    | `cclens report` (markdown, JSON, self-contained HTML with SVG charts); skill tells Claude to chart `--json` output when it can                                  | One HTML file with no network requests; its numbers match `review` and `tokens`                                                             |
+| **8. Agents**                | Agent inventory + usage: calls, tokens and estimated cost per agent type; `cclens agents`; `unused-agents` and `expensive-agents` rules                         | Fixture transcripts with subagents give exact counts; unused agents listed like unused skills                                               |
+| **9. Recurring jobs**        | Group sessions from the same scheduled or repeated task; cost per run and per month; `cclens jobs`                                                              | Daily scheduled runs show as one job with run count, average and 30-day cost                                                                |
+| **10. Live feedback**        | `cclens statusline` (today's cost, 5-hour block) and optional budget warnings                                                                                   | Status line answers in < 100 ms; a budget breach adds one warning line, never blocks                                                        |
+| **11. Context overhead**     | A2: tokens taken by MCP tools, skills and CLAUDE.md before the first prompt; `--fix` hints that print disable commands; week-over-week in `review`              | Overhead per source matches a manual count on fixtures                                                                                      |
+| **12. Dashboard** (optional) | `cclens ui`: local web UI over the same report model                                                                                                            | Charts render from the same JSON the CLI produces                                                                                           |
 
 ---
+
+## 6.1 Roadmap after 0.1.0 (Phases 6–12)
+
+Proposed 2026-11-19 after the first real report showed almost every installed skill unused, the costliest sessions known only by ID, and many repeated scheduled sessions. Each phase is one minor release, keeps the layer rule (`interfaces → app → core ← adapters`), and reads only local files.
+
+### Phase 6: session names (0.2.0)
+
+- **Data:** transcripts hold `{"type":"custom-title","customTitle":"…"}` records (the name shown in Claude Code and the desktop app); the last one wins. Without one, use the first typed prompt, cut to 60 characters.
+- **Design:** `TranscriptActivitySource` already reads every transcript line once, so it also collects `title` and `titleSource: 'custom' | 'first-prompt'` into `SessionActivity`; no second scan. A small `SessionLabels` value object (core) formats `Title (abcd1234)` and resolves a `--session` argument that is an ID prefix or a title substring (several matches → list them and stop).
+- **Where it shows:** `tokens session`, every `review` finding that names a session, `review --session`, and `--json` (`title`, `titleSource`).
+- **Tests:** fixtures with a custom title, with only prompts, and with two titles.
+
+### Phase 7: reports and charts (0.3.0)
+
+- **`ReportService` (app)** builds a `UsageReport` model from the existing services: KPI totals, daily tokens and cost, top sessions by cost (with titles), unused skills by plugin, review findings. `cclens report [--since 30d] [--format md|json|html] [--out file] [--open]`.
+- **`HtmlReportRenderer` (interfaces)** writes one self-contained file with inline SVG charts drawn by a small chart module (bars, horizontal bars, sparkline). No chart library from a CDN, so the report opens offline and makes no requests (A7).
+- **Inside Claude:** the plugin skill gains a rule: when the user asks for a chart and a chart or visual tool is available, call `cclens … --json` and chart that output; otherwise run `cclens report --format html --open`.
+- **Tests:** snapshot of the report model on fixtures; HTML contains no `http` URL except links.
+
+### Phase 8: agents (0.4.0)
+
+- **Inventory:** `AgentSource` port, adapters for `~/.claude/agents`, `.claude/agents` and plugin `agents/` folders (same pattern as the skill sources, `Composite` merge).
+- **Usage:** `AgentActivitySource` port; the transcript adapter pairs each `Agent` tool call (`subagent_type`, description) with its sidechain transcript `<session>/subagents/agent-<id>.jsonl` and sums its token counts. Cost is estimated from the session's cost by token share and labelled as an estimate.
+- **Command:** `cclens agents [--unused] [--by type|session] [--since 30d]`.
+- **Rules:** `unused-agents` (installed agent descriptions cost context too) and `expensive-agents` (one run over a set share of its session's cost).
+- **Note:** agent use varies widely between users, so fixtures with many subagents carry the tests.
+
+### Phase 9: recurring jobs (0.5.0)
+
+- **Grouping:** first check transcripts for a scheduled-task marker (to be verified). Otherwise group by normalized title (dates, numbers and episode names stripped) within one project, with at least 3 runs.
+- **Output:** `cclens jobs`: runs, average cost per run, 30-day cost and monthly run-rate per job. `review` gains a `recurring-cost` rule pointing at the costliest job and the levers (smaller model, shorter prompt, fewer tools).
+
+### Phase 10: live feedback (0.6.0)
+
+- **Status line:** check first whether `ccusage statusline` already does it (reuse before rebuild); if it does, `cclens statusline` wraps it and adds the skill count. It must answer in under 100 ms, so it reads a small rollup cache instead of running ccusage each time.
+- **Budgets:** `config.budget.daily` / `.monthly`. The `UserPromptSubmit` hook reads the cached rollup and, when over budget, prints one warning line as hook context. It never blocks and stays inside the 150 ms hook limit.
+
+### Phase 11: context overhead and fixes (0.7.0)
+
+- **A2 overhead:** tokens before the first prompt, split into MCP tool definitions, skill listing and CLAUDE.md/rules, read from the first request of recent transcripts.
+- **`--fix` hints:** `cclens skills --unused --by-plugin --fix` prints the exact `claude plugin disable …` commands (never runs them).
+- **Trends:** `review --compare` shows this window against the previous one, so a change can be seen to help.
+
+### Phase 12: dashboard (optional)
+
+`cclens ui` serves the Phase 7 `UsageReport` model from a local-only HTTP server with the same charts and live refresh. It adds no new data, only a view.
+
+### Open questions for these phases
+
+1. Chart drawing: a ~200-line SVG module, or a vendored chart library inside the HTML file?
+2. Agent cost: token share of the session (no extra pricing data), or price each sidechain message with ccusage's model prices?
+3. Do scheduled-task sessions carry a marker in the transcript, or is title grouping the only signal?
+4. Budget warnings: on by default with no budget set (off), or offered by `cclens init`?
 
 ## 7. Quality bar
 
@@ -138,5 +197,5 @@ There are two supported paths, and both end in the same state.
 
 1. **Name**: resolved 2026-11-19. npm refused the unscoped `cclens` as too similar to `cc-lens`, so the package is `@abdofawzi5/cclens`; the command, data folder and plugin are still `cclens`.
 2. **skills.sh key**: request one from skills-api@vercel.com, or ship that engine disabled until the user adds a key?
-3. **Phase 6 dashboard**: include it in v1, or ship CLI-only first?
+3. **Dashboard**: resolved 2026-11-19. 0.1.0 shipped CLI-only; the dashboard is now optional Phase 12, after `cclens report` (Phase 7).
 4. **Windows support** in v1, or macOS/Linux only?
