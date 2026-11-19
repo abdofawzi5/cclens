@@ -1,7 +1,9 @@
 import { Command } from 'commander';
 import { ConfigService } from '../../app/config-service.js';
 import { DoctorService } from '../../app/doctor-service.js';
+import { InventoryService } from '../../app/inventory/inventory-service.js';
 import { SetupService } from '../../app/setup-service.js';
+import { TokenService } from '../../app/token-service.js';
 import { UsageService } from '../../app/usage-service.js';
 import type { Container } from '../../composition-root.js';
 import { JsonRenderer } from '../render/json-renderer.js';
@@ -11,10 +13,16 @@ import { DoctorCommand } from './commands/doctor-command.js';
 import { HookCommand } from './commands/hook-command.js';
 import { InitCommand } from './commands/init-command.js';
 import { PathsCommand } from './commands/paths-command.js';
+import { SkillsCommand } from './commands/skills-command.js';
+import { TokensCommand } from './commands/tokens-command.js';
 import { UninstallCommand } from './commands/uninstall-command.js';
+import { UsageCommand } from './commands/usage-command.js';
 
 /** Registered commands. New phases add their command class here. */
 const COMMANDS: readonly CliCommand[] = [
+  new SkillsCommand(),
+  new UsageCommand(),
+  new TokensCommand(),
   new InitCommand(),
   new DoctorCommand(),
   new UninstallCommand(),
@@ -28,6 +36,8 @@ export function buildServices(c: Container): Services {
   return {
     config: new ConfigService(c.configStore),
     usage,
+    inventory: new InventoryService(c.skillSource, usage),
+    tokens: new TokenService(c.tokens),
     setup: new SetupService({
       paths: c.paths,
       configStore: c.configStore,

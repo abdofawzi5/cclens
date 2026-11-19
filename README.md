@@ -2,7 +2,7 @@
 
 **Claude Code Lens**: see which skills you have and which you actually use, where your tokens go, how to use fewer, and find new skills across the main registries, ranked by GitHub stars.
 
-> Status: Phase 1 (install and capture) done. Stats, review and search are next. See [docs/PLAN.md](docs/PLAN.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+> Status: Phases 1–2 done (install, capture, stats). Session review and skill search are next. See [docs/PLAN.md](docs/PLAN.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Install
 
@@ -23,15 +23,20 @@ Preview first with `cclens init --dry-run`. Register hooks for one project only 
 
 ## Commands
 
-| Command              | What it does                                         |
-| -------------------- | ---------------------------------------------------- |
-| `cclens init`        | Set up or repair cclens                              |
-| `cclens doctor`      | Check the installation and say how to fix problems   |
-| `cclens uninstall`   | Remove the hooks; recorded data stays in `~/.cclens` |
-| `cclens paths`       | Show where cclens and Claude Code keep data          |
-| `cclens config show` | Show the effective configuration                     |
+| Command                | What it does                                                                                                                                                     |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cclens skills`        | Installed skills with how often each was used. `--unused`, `--by-plugin`, `--plugin <name>`, `--scope personal\|project\|plugin`, `--since 30d`                  |
+| `cclens usage`         | Skill uses grouped `--by skill\|day\|project\|source`, with `--since`, `--until`, `--skill`, `--limit`                                                           |
+| `cclens tokens [view]` | Tokens and estimated cost: `daily` (default), `weekly`, `monthly`, `session`, `project`, `blocks` (5-hour windows). `--since`, `--until`, `--project`, `--limit` |
+| `cclens init`          | Set up or repair cclens                                                                                                                                          |
+| `cclens doctor`        | Check the installation and say how to fix problems                                                                                                               |
+| `cclens uninstall`     | Remove the hooks; recorded data stays in `~/.cclens`                                                                                                             |
+| `cclens paths`         | Show where cclens and Claude Code keep data                                                                                                                      |
+| `cclens config show`   | Show the effective configuration                                                                                                                                 |
 
-Every command accepts `--json`.
+Every command accepts `--json`. Dates accept `YYYY-MM-DD`, `YYYYMMDD` or relative values like `7d`, `4w`, `3m`.
+
+Skills are found in `~/.claude/skills` (personal), `.claude/skills` (project), Claude Code's plugin folder, and the Claude desktop app's plugin folder. Claude Code's built-in skills, which aren't stored on disk, aren't listed. Token numbers come from [ccusage](https://github.com/ryoppippi/ccusage); costs are estimates at API list prices, not what your plan bills.
 
 ## How recording works
 

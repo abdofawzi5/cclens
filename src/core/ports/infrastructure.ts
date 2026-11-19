@@ -51,6 +51,8 @@ export interface Paths {
   readonly claudeHome: string;
   readonly claudeProjectsDir: string;
   readonly claudeSkillsDir: string;
+  /** Folders scanned for installed plugins (Claude Code and the desktop app). */
+  readonly pluginRoots: readonly string[];
   /** Pre-cclens log created by the manual hook. */
   readonly legacyUsageLog: string;
 }

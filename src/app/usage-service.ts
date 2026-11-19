@@ -72,10 +72,20 @@ export class UsageService {
   }
 
   /** Uses per qualified skill id, most used first. */
-  async countBySkill(filter?: UsageFilter): Promise<ReadonlyMap<string, number>> {
+  countBySkill(filter?: UsageFilter): Promise<ReadonlyMap<string, number>> {
+    return this.countBy(USAGE_GROUPINGS.skill, filter);
+  }
+
+  /** Uses grouped by any key (skill, local day, project…), largest group first. */
+  async countBy(
+    key: (e: UsageEvent) => string,
+    filter?: UsageFilter,
+  ): Promise<ReadonlyMap<string, number>> {
     const counts = new Map<string, number>();
-    for await (const e of this.store.query(filter))
-      counts.set(e.skill, (counts.get(e.skill) ?? 0) + 1);
+    for await (const e of this.store.query(filter)) {
+      const k = key(e);
+      counts.set(k, (counts.get(k) ?? 0) + 1);
+    }
     return new Map([...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])));
   }
 
@@ -85,3 +95,16 @@ export class UsageService {
     return n;
   }
 }
+
+const pad = (n: number): string => String(n).padStart(2, '0');
+
+/** Ready-made groupings for `countBy` (Strategy). Days are in local time. */
+export const USAGE_GROUPINGS = {
+  skill: (e: UsageEvent): string => e.skill,
+  day: (e: UsageEvent): string =>
+    `${e.ts.getFullYear()}-${pad(e.ts.getMonth() + 1)}-${pad(e.ts.getDate())}`,
+  project: (e: UsageEvent): string => e.project || '(unknown)',
+  source: (e: UsageEvent): string => e.source,
+} as const;
+
+export type UsageGrouping = keyof typeof USAGE_GROUPINGS;

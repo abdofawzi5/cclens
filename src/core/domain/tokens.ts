@@ -63,3 +63,10 @@ export interface TokenFilter {
   readonly until?: Date;
   readonly project?: string;
 }
+
+export interface ProjectTokens {
+  /** Claude Code's encoded project folder, e.g. `-Users-me-Workspace-site`. */
+  readonly project: string;
+  readonly counts: TokenCounts;
+  readonly costUsd: number;
+}

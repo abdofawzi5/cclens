@@ -1,6 +1,13 @@
 import { realpathSync } from 'node:fs';
-import { delimiter, join } from 'node:path';
+import { createRequire } from 'node:module';
+import { delimiter, dirname, join } from 'node:path';
 import { JsonSettingsManager } from './adapters/claude/json-settings-manager.js';
+import { PluginTreeSource } from './adapters/claude/skills/plugin-tree-source.js';
+import { SkillDirSource } from './adapters/claude/skills/skill-dir-source.js';
+import { CcusageTokenProvider } from './adapters/tokens/ccusage-token-provider.js';
+import { CompositeSkillSource } from './app/inventory/composite-skill-source.js';
+import type { SkillSource } from './core/ports/skills.js';
+import type { TokenUsageProvider } from './core/ports/tokens.js';
 import { LegacyLogSource } from './adapters/claude/history/legacy-log-source.js';
 import { TranscriptSource } from './adapters/claude/history/transcript-source.js';
 import { JsonConfigStore } from './adapters/storage/json-config-store.js';
@@ -36,6 +43,9 @@ export interface Container {
   readonly settings: ClaudeSettingsManager;
   readonly legacySource: UsageHistorySource;
   readonly transcriptSource: UsageHistorySource;
+  /** All installed skills: personal, project and plugin (Composite). */
+  readonly skillSource: SkillSource;
+  readonly tokens: TokenUsageProvider;
   /** Shell command that starts this cclens CLI; written into Claude Code hooks. */
   readonly selfCommand: string;
   readonly nodeVersion: string;
@@ -90,6 +100,12 @@ export function stableNodePath(env: NodeJS.ProcessEnv = process.env): string {
   return exec;
 }
 
+/** ccusage ships only a CLI (no library exports since v20; see ADR 0002). */
+function ccusageCliPath(): string {
+  const require = createRequire(import.meta.url);
+  return join(dirname(require.resolve('ccusage/package.json')), 'src', 'cli.js');
+}
+
 /** The only place concrete adapters are instantiated. */
 export function createContainer(options: ContainerOptions = {}): Container {
   const o = options.overrides ?? {};
@@ -112,6 +128,18 @@ export function createContainer(options: ContainerOptions = {}): Container {
     ),
     legacySource: new LegacyLogSource(paths.legacyUsageLog),
     transcriptSource: new TranscriptSource(paths.claudeProjectsDir, logger),
+    skillSource: new CompositeSkillSource([
+      new SkillDirSource('personal', paths.claudeSkillsDir, 'personal'),
+      new SkillDirSource(
+        'project',
+        join(options.cwd ?? process.cwd(), '.claude', 'skills'),
+        'project',
+      ),
+      new PluginTreeSource(paths.pluginRoots),
+    ]),
+    tokens: new CcusageTokenProvider(new NodeProcessRunner(), {
+      command: [process.execPath, ccusageCliPath()],
+    }),
     selfCommand: o.selfCommand ?? defaultSelfCommand(options.env),
     nodeVersion: process.version,
     ...o,

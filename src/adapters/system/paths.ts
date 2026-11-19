@@ -19,6 +19,20 @@ export function resolvePaths(
     claudeHome,
     claudeProjectsDir: join(claudeHome, 'projects'),
     claudeSkillsDir: join(claudeHome, 'skills'),
+    pluginRoots: pluginRoots(claudeHome, home, env),
     legacyUsageLog: join(claudeHome, 'skill-usage.log'),
   };
+}
+
+/** Claude Code's plugin folder plus the Claude desktop app's, when present on this OS. */
+function pluginRoots(claudeHome: string, home: string, env: NodeJS.ProcessEnv): string[] {
+  const roots = [join(claudeHome, 'plugins')];
+  const desktop =
+    process.platform === 'darwin'
+      ? join(home, 'Library', 'Application Support', 'Claude')
+      : process.platform === 'win32'
+        ? join(env['APPDATA'] ?? join(home, 'AppData', 'Roaming'), 'Claude')
+        : join(env['XDG_CONFIG_HOME'] ?? join(home, '.config'), 'Claude');
+  roots.push(join(desktop, 'local-agent-mode-sessions'));
+  return roots;
 }

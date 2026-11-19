@@ -1,5 +1,6 @@
 import type {
   Period,
+  ProjectTokens,
   SessionTokens,
   TokenBucket,
   TokenFilter,
@@ -10,5 +11,6 @@ import type {
 export interface TokenUsageProvider {
   byPeriod(period: Period, filter?: TokenFilter): Promise<readonly TokenBucket[]>;
   bySession(filter?: TokenFilter): Promise<readonly SessionTokens[]>;
+  byProject(filter?: TokenFilter): Promise<readonly ProjectTokens[]>;
   blocks(filter?: TokenFilter): Promise<readonly UsageBlock[]>;
 }
