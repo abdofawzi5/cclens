@@ -1,0 +1,1 @@
+{"type":"assistant","timestamp":"2026-11-17T09:00:00.000Z","sessionId":"sess-1","cwd":"/Users/example/project","isSidechain":true,"message":{"id":"msg_9","content":[{"type":"tool_use","id":"toolu_9","name":"Skill","input":{"skill":"remotion:remotion-render"}}]}}

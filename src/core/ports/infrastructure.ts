@@ -54,3 +54,8 @@ export interface Paths {
   /** Pre-cclens log created by the manual hook. */
   readonly legacyUsageLog: string;
 }
+
+/** Minimal read-only file system queries the application layer may need. */
+export interface FileProbe {
+  exists(path: string): Promise<boolean>;
+}

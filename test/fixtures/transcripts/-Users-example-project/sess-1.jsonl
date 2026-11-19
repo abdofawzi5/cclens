@@ -1,0 +1,8 @@
+{"type":"user","timestamp":"2026-11-16T10:00:00.000Z","sessionId":"sess-1","cwd":"/Users/example/project","message":{"role":"user","content":"<command-name>/write-article</command-name>\n<command-message>write-article</command-message>\n<command-args>caching</command-args>"}}
+{"type":"user","timestamp":"2026-11-16T10:01:00.000Z","sessionId":"sess-1","cwd":"/Users/example/project","message":{"role":"user","content":"<command-name>/compact</command-name>"}}
+{"type":"assistant","timestamp":"2026-11-16T10:02:00.000Z","sessionId":"sess-1","cwd":"/Users/example/project","message":{"id":"msg_1","content":[{"type":"text","text":"Using a skill"},{"type":"tool_use","id":"toolu_1","name":"Skill","input":{"skill":"marketing:seo-audit"}}]}}
+{"type":"assistant","timestamp":"2026-11-16T10:02:00.500Z","sessionId":"sess-1","cwd":"/Users/example/project","message":{"id":"msg_1","content":[{"type":"tool_use","id":"toolu_1","name":"Skill","input":{"skill":"marketing:seo-audit"}}]}}
+{"type":"api-request-shape","timestamp":"2026-11-16T10:02:01.000Z","tools":[{"name":"Skill"}]}
+{"type":"assistant","timestamp":"2026-11-16T10:03:00.000Z","sessionId":"sess-1","cwd":"/Users/example/project","message":{"id":"msg_2","content":[{"type":"tool_use","id":"toolu_2","name":"Bash","input":{"command":"ls"}}]}}
+not json at all "name":"Skill"
+{"type":"user","timestamp":"2026-11-16T10:04:00.000Z","sessionId":"sess-1","cwd":"/Users/example/project","message":{"role":"user","content":[{"type":"text","text":"just chatting"}]}}

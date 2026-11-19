@@ -1,13 +1,53 @@
 import { Command } from 'commander';
 import { ConfigService } from '../../app/config-service.js';
+import { DoctorService } from '../../app/doctor-service.js';
+import { SetupService } from '../../app/setup-service.js';
+import { UsageService } from '../../app/usage-service.js';
 import type { Container } from '../../composition-root.js';
 import { JsonRenderer } from '../render/json-renderer.js';
-import type { CliCommand, CommandContext } from './command.js';
+import type { CliCommand, CommandContext, Services } from './command.js';
 import { ConfigCommand } from './commands/config-command.js';
+import { DoctorCommand } from './commands/doctor-command.js';
+import { HookCommand } from './commands/hook-command.js';
+import { InitCommand } from './commands/init-command.js';
 import { PathsCommand } from './commands/paths-command.js';
+import { UninstallCommand } from './commands/uninstall-command.js';
 
 /** Registered commands. New phases add their command class here. */
-const COMMANDS: readonly CliCommand[] = [new PathsCommand(), new ConfigCommand()];
+const COMMANDS: readonly CliCommand[] = [
+  new InitCommand(),
+  new DoctorCommand(),
+  new UninstallCommand(),
+  new PathsCommand(),
+  new ConfigCommand(),
+  new HookCommand(),
+];
+
+export function buildServices(c: Container): Services {
+  const usage = new UsageService(c.eventStore, c.clock);
+  return {
+    config: new ConfigService(c.configStore),
+    usage,
+    setup: new SetupService({
+      paths: c.paths,
+      configStore: c.configStore,
+      eventStore: c.eventStore,
+      settings: c.settings,
+      usage,
+      legacySource: c.legacySource,
+      transcriptSource: c.transcriptSource,
+      selfCommand: c.selfCommand,
+    }),
+    doctor: new DoctorService({
+      paths: c.paths,
+      configStore: c.configStore,
+      settings: c.settings,
+      usage,
+      files: c.files,
+      nodeVersion: c.nodeVersion,
+    }),
+  };
+}
 
 export function buildProgram(
   container: Container,
@@ -26,7 +66,7 @@ export function buildProgram(
   const json = new JsonRenderer();
   const ctx: CommandContext = {
     container,
-    services: { config: new ConfigService(container.configStore) },
+    services: buildServices(container),
     renderer: (format, fallback) => (format === 'json' ? json : fallback),
     print,
   };

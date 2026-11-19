@@ -5,3 +5,4 @@ export type * from './review.js';
 export type * from './search.js';
 export type * from './claude-settings.js';
 export type * from './infrastructure.js';
+export type * from './install.js';

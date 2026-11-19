@@ -37,3 +37,8 @@ export function matchesUsageFilter(e: UsageEvent, f: UsageFilter): boolean {
   if (f.sources && !f.sources.includes(e.source)) return false;
   return true;
 }
+
+/** Identity used to avoid importing the same event twice. */
+export function usageEventKey(e: UsageEvent): string {
+  return `${e.ts.toISOString()}|${e.skill}|${e.sessionId ?? ''}`;
+}
