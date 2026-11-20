@@ -91,6 +91,19 @@ function deps(overrides: Partial<AdviseDeps> = {}): AdviseDeps & { queries: stri
   };
 }
 
+const emptyAdvice = {
+  since: now,
+  until: now,
+  windowDays: 30,
+  summary: analysis.report.summary,
+  suggestions: [],
+  disable: [],
+  discover: [],
+  budget: [],
+  plan: { items: [], monthlyUsd: 0 },
+  notes: [],
+};
+
 describe('AdviseService', () => {
   it('combines review findings, budget, fix hints and skill suggestions', async () => {
     const d = deps();
@@ -106,6 +119,35 @@ describe('AdviseService', () => {
     expect(text).toContain('claude plugin disable mkt@market');
     expect(text).toContain('daily-seo-report (scheduled, 4 runs');
     expect(text).toContain('https://example.com/seo-report');
+    // No turn data in this fixture: the plan section still prints, pointing at suggestion 1.
+    expect(advice.plan.items).toEqual([]);
+    expect(text).toContain('Action plan: biggest wins first');
+    expect(text).toContain('start with suggestion 1: All Opus');
+  });
+
+  it('prints the action plan last, with its steps', () => {
+    const advice = {
+      ...emptyAdvice,
+      plan: {
+        monthlyUsd: 40,
+        items: [
+          {
+            kind: 'cheaper-helper' as const,
+            title: 'Hand daily-build to a Sonnet helper',
+            target: 'daily-build',
+            why: 'Most calls run shell commands.',
+            steps: ['Add to ~/x/.claude/settings.json:', '  "enabledPlugins": {}'],
+            monthlyUsd: 40,
+          },
+        ],
+      },
+    };
+    const text = strip(new AdviceRenderer().render(advice));
+    const plan = text.indexOf('Action plan: biggest wins first (~$40.00 a month in all)');
+    expect(plan).toBeGreaterThan(text.indexOf('ways to save tokens'));
+    expect(text).toContain('1. Hand daily-build to a Sonnet helper saves ~$40.00 a month');
+    expect(text).toContain('→ Add to ~/x/.claude/settings.json:');
+    expect(text).toMatch(/\n {8}"enabledPlugins": \{\}/);
   });
 
   it('skips the registry search with search: false and survives a failing search', async () => {

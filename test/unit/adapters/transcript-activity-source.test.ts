@@ -178,6 +178,78 @@ describe('TranscriptActivitySource', () => {
     expect(JSON.stringify(s)).not.toContain('Secret steps');
   });
 
+  it('records model calls, context sizes and what the tools pulled in', async () => {
+    const call = (
+      uuid: string,
+      min: number,
+      id: string,
+      tokens: number,
+      content: unknown[] = [],
+      extra: Record<string, unknown> = {},
+    ) =>
+      JSON.stringify({
+        type: 'assistant',
+        uuid,
+        sessionId: 'w',
+        timestamp: at(min),
+        cwd: '/Users/me/work',
+        message: {
+          id,
+          model: 'claude-opus-5-5',
+          content,
+          usage: { input_tokens: 10, cache_read_input_tokens: tokens - 10 },
+        },
+        ...extra,
+      });
+    const use = (id: string, name: string, input: Record<string, unknown> = {}) => ({
+      type: 'tool_use',
+      id,
+      name,
+      input,
+    });
+    const result = (uuid: string, min: number, id: string, text: string) =>
+      JSON.stringify({
+        type: 'user',
+        uuid,
+        sessionId: 'w',
+        timestamp: at(min),
+        message: { content: [{ type: 'tool_result', tool_use_id: id, content: text }] },
+      });
+    await write('-Users-me-work/w.jsonl', [
+      prompt('p1', 1, { sessionId: 'w' }),
+      call('a1', 2, 'm1', 1_000, [use('t1', 'Bash', { command: 'make' })]),
+      // The same message streamed again: counted once.
+      call('a2', 2, 'm1', 1_000, [use('t1', 'Bash', { command: 'make' })]),
+      call('a3', 3, 'm2', 3_000, [
+        use('t2', 'Read', { file_path: '/Users/me/work/LOG.md' }),
+        use('t3', 'Read', { file_path: '/Users/me/work/still.PNG' }),
+        use('t4', 'mcp__notion__search'),
+      ]),
+      result('r2', 4, 't2', 'x'.repeat(4_000)),
+      call('a4', 5, 'm3', 5_000, [], { isSidechain: true }),
+      call('a5', 6, 'm4', 2_000, [], {
+        message: { id: 'm4', model: '<synthetic>', content: [], usage: { input_tokens: 9 } },
+      }),
+    ]);
+    const [s] = await new TranscriptActivitySource(dir).read();
+    expect(s?.cwd).toBe('/Users/me/work');
+    // Model calls and tool results do not move the activity times; prompts do.
+    expect(s?.lastActivity).toEqual(new Date(at(1)));
+    expect(s?.turns).toEqual({
+      modelCalls: 2,
+      firstContextTokens: 1_000,
+      contextTokens: 4_000,
+      maxContextTokens: 3_000,
+      mainModel: 'claude-opus-5-5',
+      toolCalls: 4,
+      shellCalls: 1,
+      imageReads: 1,
+      fileReads: [{ path: '/Users/me/work/LOG.md', tokens: expect.any(Number) as number }],
+      mcpServersUsed: ['notion'],
+    });
+    expect(s?.turns?.fileReads[0]?.tokens).toBeGreaterThan(1_000);
+  });
+
   it('returns nothing for a missing folder', async () => {
     expect(await new TranscriptActivitySource(join(dir, 'missing')).read()).toEqual([]);
   });

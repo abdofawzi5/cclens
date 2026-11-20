@@ -5,6 +5,38 @@ import type { SessionTitle } from './session-labels.js';
 import type { Skill } from './skill.js';
 import type { SessionTokens, TokenBucket } from './tokens.js';
 
+/** A file the main session read, with the estimated size of its largest read. */
+export interface FileRead {
+  readonly path: string;
+  /** Estimated tokens (~4 characters each) the read put into the context. */
+  readonly tokens: number;
+}
+
+/**
+ * How the main session's model calls went: how big the context was and what
+ * the tools pulled into it. Subagent (sidechain) calls are not counted.
+ */
+export interface SessionTurns {
+  /** Model calls (one per assistant message, however many lines it streamed as). */
+  readonly modelCalls: number;
+  /** Context of the first call: what every call starts from (system prompt, tools, skills…). */
+  readonly firstContextTokens: number;
+  /** Context summed over every call (input + cache write + cache read). */
+  readonly contextTokens: number;
+  readonly maxContextTokens: number;
+  /** The model that answered most calls. */
+  readonly mainModel?: string;
+  readonly toolCalls: number;
+  /** Bash calls: mechanical work (builds, scripts, uploads) a cheaper model can run. */
+  readonly shellCalls: number;
+  /** Images (PNG, JPG, GIF, WebP) read into the main context. */
+  readonly imageReads: number;
+  /** Text files read, largest first. */
+  readonly fileReads: readonly FileRead[];
+  /** MCP servers whose tools were called (`mcp__<server>__…`). */
+  readonly mcpServersUsed: readonly string[];
+}
+
 /** What a session's transcript tells us beyond token counts. */
 export interface SessionActivity {
   readonly sessionId: string;
@@ -22,6 +54,10 @@ export interface SessionActivity {
   readonly title?: SessionTitle;
   /** Set when a scheduled task started the session: the task's name. */
   readonly scheduledTask?: string;
+  /** The folder the session ran in, when the transcript records it. */
+  readonly cwd?: string;
+  /** Model calls and what filled the context; absent when the transcript has no usage. */
+  readonly turns?: SessionTurns;
 }
 
 /** A review covers either every session in a window, or one session. */

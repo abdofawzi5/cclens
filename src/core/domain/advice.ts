@@ -3,6 +3,7 @@
  * unused plugins, recurring jobs, budget) that ranks what to change and suggests
  * skills for the tasks the user repeats. Everything here is pure.
  */
+import type { ActionPlan } from './action-plan.js';
 import { type Budget, type BudgetStatus, isBudgetSet } from './budget.js';
 import type { FixHint } from './fix-hints.js';
 import type { Job } from './jobs.js';
@@ -35,6 +36,8 @@ export interface Advice {
   /** Skills that might handle repeated tasks; empty when search was skipped. */
   readonly discover: readonly SkillSuggestion[];
   readonly budget: readonly BudgetStatus[];
+  /** Structural changes ranked by estimated dollars saved a month; shown last. */
+  readonly plan: ActionPlan;
   /** Partial data: sources that failed or were skipped. */
   readonly notes: readonly string[];
 }

@@ -1,5 +1,6 @@
 import type { Command } from 'commander';
 import pc from 'picocolors';
+import { planSaving } from '../../../core/domain/action-plan.js';
 import type { Advice } from '../../../core/domain/advice.js';
 import type { FixHint } from '../../../core/domain/fix-hints.js';
 import type { Recommendation, Severity } from '../../../core/domain/recommendation.js';
@@ -138,6 +139,10 @@ export class AdviceRenderer implements Renderer {
       const line = `${b.limit} budget: ${usd(b.spentUsd)} of ${usd(b.limitUsd)} (${percent(b.fraction)})`;
       out.push(b.over ? pc.red(line) : pc.dim(line));
     }
+    if (a.budget.length > 0) out.push('');
+
+    // 5. Action plan: always last, the few changes worth making first.
+    out.push(...this.plan(a));
 
     out.push(
       pc.dim(
@@ -146,6 +151,38 @@ export class AdviceRenderer implements Renderer {
     );
     for (const note of a.notes) out.push(pc.yellow(`! ${note}`));
     return out.join('\n');
+  }
+
+  private plan(a: Advice): string[] {
+    const plan = a.plan;
+    const out = [
+      pc.bold('Action plan: biggest wins first') +
+        (plan.items.length > 0 ? pc.dim(` (~${usd(plan.monthlyUsd)} a month in all)`) : ''),
+    ];
+    if (plan.items.length === 0) {
+      const first = a.suggestions[0];
+      out.push(
+        first
+          ? `  No structural change stands out; start with suggestion 1: ${first.title}.`
+          : pc.green('  Nothing big to change.'),
+        '',
+      );
+      return out;
+    }
+    plan.items.forEach((item, i) => {
+      out.push(
+        `${pc.dim(`${String(i + 1).padStart(2)}.`)} ${pc.bold(item.title)} ${pc.green(`saves ${planSaving(item)}`)}`,
+      );
+      out.push(...wrap(item.why, this.width, '      '));
+      for (const step of item.steps) {
+        // Indented steps continue the one before (e.g. lines of a settings file).
+        out.push(
+          step.startsWith('  ') ? `        ${step.trim()}` : `      ${pc.cyan('→')} ${step}`,
+        );
+      }
+    });
+    out.push(pc.dim('  Rough estimates from your transcripts; cclens changes nothing itself.'), '');
+    return out;
   }
 }
 

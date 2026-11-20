@@ -8,6 +8,7 @@ import {
   rankSuggestions,
   type SkillSuggestion,
 } from '../core/domain/advice.js';
+import { buildActionPlan } from '../core/domain/action-plan.js';
 import type { Budget, BudgetStatus } from '../core/domain/budget.js';
 import type { FixHint } from '../core/domain/fix-hints.js';
 import { groupJobs } from '../core/domain/jobs.js';
@@ -102,6 +103,14 @@ export class AdviseService {
       disable,
       discover,
       budget: budgetView?.statuses ?? [],
+      plan: buildActionPlan({
+        jobs: groupJobs(ctx.activity, ctx.sessions, { since: ctx.since, now: ctx.now }),
+        activity: ctx.activity,
+        sessions: ctx.sessions,
+        ...(overhead ? { overhead } : {}),
+        disable,
+        windowDays: ctx.windowDays,
+      }),
       notes: [...report.notes, ...notes],
     };
   }
