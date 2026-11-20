@@ -9,13 +9,20 @@ describe('parseRepoRef', () => {
     ['github.com/a/b?tab=readme', 'a', 'b'],
     ['coreyhaines31/marketingskills', 'coreyhaines31', 'marketingskills'],
     ['  owner/repo.name  ', 'owner', 'repo.name'],
+    ['git+https://github.com/fizko-dev/fizko.git', 'fizko-dev', 'fizko'],
+    ['git+ssh://git@github.com/a/b.git', 'a', 'b'],
+    ['git://github.com/a/b.git', 'a', 'b'],
+    ['git@github.com:a/b.git', 'a', 'b'],
   ])('parses %s', (input, owner, name) => {
     expect(parseRepoRef(input)).toEqual({ owner, name });
   });
 
-  it.each(['', 'https://gitlab.com/a/b', 'just-a-name', 'a/b/c'])('rejects %s', (input) => {
-    expect(parseRepoRef(input)).toBeUndefined();
-  });
+  it.each(['', 'https://gitlab.com/a/b', 'git+https://gitlab.com/a/b.git', 'just-a-name', 'a/b/c'])(
+    'rejects %s',
+    (input) => {
+      expect(parseRepoRef(input)).toBeUndefined();
+    },
+  );
 
   it('builds case-insensitive keys', () => {
     expect(repoKey({ owner: 'Obra', name: 'SuperPowers' })).toBe('obra/superpowers');
