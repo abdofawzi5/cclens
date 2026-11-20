@@ -1,5 +1,11 @@
 # @abdofawzi5/cclens
 
+## 1.0.1
+
+### Patch Changes
+
+- 09a0661: Search results now link to their GitHub repo when a registry gives git-style repository URLs (`git+https://…`, `git+ssh://…`, `git://…`, `git@github.com:…`), as npm does, so stars are looked up and duplicates merge.
+
 ## 1.0.0
 
 ### Major Changes
