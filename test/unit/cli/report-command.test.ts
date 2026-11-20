@@ -1,3 +1,4 @@
+import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { resolvePaths } from '../../../src/adapters/system/paths.js';
 import { createContainer } from '../../../src/composition-root.js';
@@ -17,6 +18,7 @@ import { FakeTokens } from '../../support/fake-tokens.js';
 import { InMemoryConfigStore } from '../../support/in-memory-config-store.js';
 import { activity } from '../../support/review.js';
 
+const htmlReport = join('/tmp/cclens-home', 'reports', 'report-2026-11-19.html');
 const EVIL = '</script><img src=x onerror="alert(1)"> | pipe';
 
 const report: UsageReport = {
@@ -229,15 +231,15 @@ describe('report command', () => {
   it('writes HTML to ~/.cclens/reports and opens it', async () => {
     const { out, written, opened } = await run(['report', '--open']);
     expect(written).toHaveLength(1);
-    expect(written[0]?.path).toBe('/tmp/cclens-home/reports/report-2026-11-19.html');
+    expect(written[0]?.path).toBe(htmlReport);
     expect(written[0]?.data).toContain('<script>/*lib*/</script>');
-    expect(opened).toEqual(['/tmp/cclens-home/reports/report-2026-11-19.html']);
-    expect(out).toBe('Report written to /tmp/cclens-home/reports/report-2026-11-19.html');
+    expect(opened).toEqual([htmlReport]);
+    expect(out).toBe(`Report written to ${htmlReport}`);
   });
 
   it('writes Markdown to --out without opening it', async () => {
     const { written, opened } = await run(['report', '--out', '/tmp/r.md']);
-    expect(written[0]?.path).toBe('/tmp/r.md');
+    expect(written[0]?.path).toBe(resolve('/tmp/r.md'));
     expect(written[0]?.data).toContain('# cclens report:');
     expect(opened).toEqual([]);
   });

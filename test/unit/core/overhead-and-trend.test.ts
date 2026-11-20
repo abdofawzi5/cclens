@@ -84,6 +84,18 @@ describe('fix hints', () => {
       pluginKeyFromPath(`${home}/plugins/synced/x_y/123/skills/a/SKILL.md`, 'design', home),
     ).toBe('design@synced');
     expect(pluginKeyFromPath('/elsewhere/skills/a/SKILL.md', 'x', home)).toBeUndefined();
+    // Windows: Claude's home with backslashes, the skill path with either separator.
+    const win = 'C:\\Users\\me\\.claude';
+    expect(
+      pluginKeyFromPath(`${win}\\plugins\\synced\\x\\skills\\a\\SKILL.md`, 'design', win),
+    ).toBe('design@synced');
+    expect(
+      pluginKeyFromPath(
+        'C:/Users/me/.claude/plugins/cache/acme/tools/1.0.0/SKILL.md',
+        'tools',
+        win,
+      ),
+    ).toBe('tools@acme');
   });
 
   it('prints a command where one works and a note elsewhere, biggest first', () => {
