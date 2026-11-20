@@ -134,10 +134,18 @@ export class JsonSettingsManager implements ClaudeSettingsManager {
   }
 
   async enabledPlugins(scope: SettingsScope): Promise<readonly string[]> {
+    return this.pluginKeys(scope, true);
+  }
+
+  async disabledPlugins(scope: SettingsScope): Promise<readonly string[]> {
+    return this.pluginKeys(scope, false);
+  }
+
+  private async pluginKeys(scope: SettingsScope, state: boolean): Promise<readonly string[]> {
     const parsed = enabledPluginsSchema.safeParse((await this.read(scope))['enabledPlugins']);
     if (!parsed.success) return [];
     return Object.entries(parsed.data)
-      .filter(([, enabled]) => enabled === true)
+      .filter(([, enabled]) => enabled === state)
       .map(([key]) => key);
   }
 

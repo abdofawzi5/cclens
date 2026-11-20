@@ -38,6 +38,7 @@ import { FileLogger } from './adapters/system/file-logger.js';
 import { NodeFileProbe } from './adapters/system/node-file-probe.js';
 import { NodeProcessRunner } from './adapters/system/node-process-runner.js';
 import { resolvePaths } from './adapters/system/paths.js';
+import { disabledPluginNames } from './core/domain/plugin-state.js';
 import { SystemClock } from './adapters/system/system-clock.js';
 import type { ClaudeSettingsManager } from './core/ports/claude-settings.js';
 import type { HookRunnerStore } from './core/ports/install.js';
@@ -180,6 +181,25 @@ export function createContainer(options: ContainerOptions = {}): Container {
   const cache = o.cache ?? new FileCache(paths.cacheDir, clock);
   const http = o.http ?? new FetchHttpClient(`cclens/${options.version ?? 'dev'}`);
   const secrets = o.secrets ?? new EnvSecretResolver(env, runner);
+  const settings = new JsonSettingsManager(
+    paths.claudeHome,
+    options.cwd ?? process.cwd(),
+    paths.backupsDir,
+    clock,
+  );
+  // Plugins turned off with `claude plugin disable` stay on disk; leave their skills and
+  // agents out. Unreadable settings count as nothing disabled.
+  const switches = async (scope: 'user' | 'project') => ({
+    enabled: await settings.enabledPlugins(scope),
+    disabled: await settings.disabledPlugins(scope),
+  });
+  const disabledPlugins = async (): Promise<ReadonlySet<string>> => {
+    try {
+      return disabledPluginNames(await switches('user'), await switches('project'));
+    } catch {
+      return new Set();
+    }
+  };
   return {
     paths,
     clock,
@@ -188,12 +208,7 @@ export function createContainer(options: ContainerOptions = {}): Container {
     files: new NodeFileProbe(),
     configStore: new JsonConfigStore(paths.configFile),
     eventStore: new JsonlEventStore(paths.eventsFile, logger),
-    settings: new JsonSettingsManager(
-      paths.claudeHome,
-      options.cwd ?? process.cwd(),
-      paths.backupsDir,
-      clock,
-    ),
+    settings,
     hookRunner: new FileHookRunnerStore(paths.hookRunnerFile),
     legacySource: new LegacyLogSource(paths.legacyUsageLog),
     transcriptSource: new TranscriptSource(paths.claudeProjectsDir, logger),
@@ -204,7 +219,7 @@ export function createContainer(options: ContainerOptions = {}): Container {
         join(options.cwd ?? process.cwd(), '.claude', 'skills'),
         'project',
       ),
-      new PluginTreeSource(paths.pluginRoots),
+      new PluginTreeSource(paths.pluginRoots, undefined, disabledPlugins),
     ]),
     tokens: new CcusageTokenProvider(runner, {
       command: [process.execPath, ccusageCliPath()],
@@ -225,7 +240,7 @@ export function createContainer(options: ContainerOptions = {}): Container {
         join(options.cwd ?? process.cwd(), '.claude', 'agents'),
         'project',
       ),
-      new PluginAgentSource(paths.pluginRoots),
+      new PluginAgentSource(paths.pluginRoots, undefined, disabledPlugins),
     ]),
     agentActivity: new TranscriptAgentSource(paths.claudeProjectsDir, logger),
     overhead: new TranscriptOverheadSource(paths.claudeProjectsDir, logger),

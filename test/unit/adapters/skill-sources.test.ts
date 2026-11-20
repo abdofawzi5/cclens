@@ -99,6 +99,16 @@ describe('skill sources', () => {
     });
   });
 
+  it('leaves out plugins turned off in settings', async () => {
+    await plugin(dir, 'synced/a/one', 'marketing', ['seo-audit']);
+    await plugin(dir, 'desktop/rpm/plugin_1', 'marketing', ['seo-audit']);
+    await plugin(dir, 'synced/a/two', 'design', ['critique']);
+    const off = () => Promise.resolve(new Set(['marketing']));
+    expect((await new PluginTreeSource([dir], 6, off).list()).map((s) => s.id)).toEqual([
+      'design:critique',
+    ]);
+  });
+
   it('respects the depth limit', async () => {
     await plugin(dir, 'a/b/c/deep', 'deep', ['s']);
     // The plugin folder is 4 levels below the root: a/b/c/deep.

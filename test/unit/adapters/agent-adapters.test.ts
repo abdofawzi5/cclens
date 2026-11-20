@@ -228,6 +228,11 @@ describe('agent inventory', () => {
     ]).list();
     expect(all.map((a) => a.id)).toEqual(['plain', 'reviewer', 'toolkit:hunter']);
   });
+
+  it('leaves out agents of plugins turned off in settings', async () => {
+    const off = () => Promise.resolve(new Set(['toolkit']));
+    expect(await new PluginAgentSource([join(dir, 'plugins')], 6, off).list()).toEqual([]);
+  });
 });
 
 describe('LiteLLM prices', () => {

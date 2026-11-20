@@ -107,8 +107,10 @@ describe('JsonSettingsManager', () => {
       JSON.stringify({ enabledPlugins: { 'cclens@cclens': true, 'off@m': false, 'odd@m': 'yes' } }),
     );
     expect(await manager.enabledPlugins('user')).toEqual(['cclens@cclens']);
+    expect(await manager.disabledPlugins('user')).toEqual(['off@m']);
     await writeFile(userFile(), JSON.stringify({ enabledPlugins: ['not', 'a', 'map'] }));
     expect(await manager.enabledPlugins('user')).toEqual([]);
+    expect(await manager.disabledPlugins('user')).toEqual([]);
   });
 
   it('refuses to edit malformed settings', async () => {

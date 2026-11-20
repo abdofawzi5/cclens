@@ -24,11 +24,16 @@ export class PluginAgentSource implements AgentSource {
   constructor(
     private readonly roots: readonly string[],
     private readonly maxDepth = 6,
+    /** Names of plugins turned off in settings; their agents are left out. */
+    private readonly disabled: () => Promise<ReadonlySet<string>> = () =>
+      Promise.resolve(new Set()),
   ) {}
 
   async list(): Promise<readonly Agent[]> {
     const byId = new Map<string, Agent>();
+    const disabled = await this.disabled();
     for await (const plugin of findPlugins(this.roots, this.maxDepth)) {
+      if (disabled.has(plugin.name)) continue;
       for (const agent of await readAgentsDir(join(plugin.dir, 'agents'), 'plugin', plugin.name)) {
         if (!byId.has(agent.id)) byId.set(agent.id, agent);
       }

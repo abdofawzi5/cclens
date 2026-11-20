@@ -27,4 +27,6 @@ export interface ClaudeSettingsManager {
   listHooks(scope: SettingsScope): Promise<readonly HookSpec[]>;
   /** Keys of `enabledPlugins` set to true, e.g. `cclens@cclens`. */
   enabledPlugins(scope: SettingsScope): Promise<readonly string[]>;
+  /** Keys of `enabledPlugins` set to false: plugins turned off with `claude plugin disable`. */
+  disabledPlugins(scope: SettingsScope): Promise<readonly string[]>;
 }
