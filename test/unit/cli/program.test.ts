@@ -1,3 +1,4 @@
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { resolvePaths } from '../../../src/adapters/system/paths.js';
 import { createContainer } from '../../../src/composition-root.js';
@@ -17,11 +18,14 @@ async function run(args: string[]): Promise<string> {
 describe('cli program', () => {
   it('prints paths as JSON', async () => {
     const out = JSON.parse(await run(['--json', 'paths'])) as Record<string, string>;
-    expect(out['home']).toBe('/home/u/.cclens');
+    expect(out['home']).toBe(join('/home/u', '.cclens'));
   });
 
   it('prints paths as aligned text', async () => {
-    expect(await run(['paths'])).toMatch(/configFile\s+\/home\/u\/\.cclens\/config\.json/);
+    const configFile = join('/home/u', '.cclens', 'config.json');
+    expect(await run(['paths'])).toMatch(
+      new RegExp(`configFile\\s+${configFile.replace(/[\\^$.*+?()[\]{}|/]/g, '\\$&')}`),
+    );
   });
 
   it('shows and validates config', async () => {

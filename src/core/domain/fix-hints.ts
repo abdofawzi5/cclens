@@ -42,8 +42,12 @@ export function pluginKeyFromPath(
   plugin: string,
   claudeHome: string,
 ): string | undefined {
-  if (!path.startsWith(claudeHome)) return undefined;
-  const rel = path.slice(claudeHome.length).replaceAll('\\', '/');
+  // Compare with forward slashes: on Windows one side may come with `\` and the other with `/`.
+  const slashes = (p: string): string => p.replaceAll('\\', '/');
+  const home = slashes(claudeHome);
+  const full = slashes(path);
+  if (!full.startsWith(home)) return undefined;
+  const rel = full.slice(home.length);
   const cached = /\/plugins\/cache\/([^/]+)\/([^/]+)\//.exec(rel);
   if (cached?.[1] && cached[2]) return `${cached[2]}@${cached[1]}`;
   if (rel.includes('/plugins/synced/')) return `${plugin}@synced`;

@@ -3,6 +3,8 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     include: ['test/**/*.test.ts'],
+    // Same output on every machine: CI runs in UTC and picocolors turns colour on when CI is set.
+    env: { TZ: 'UTC', NO_COLOR: '1' },
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],

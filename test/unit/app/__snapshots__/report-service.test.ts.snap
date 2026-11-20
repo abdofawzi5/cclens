@@ -68,7 +68,7 @@ exports[`buildUsageReport > matches the snapshot 1`] = `
       "title": "Unused",
     },
   ],
-  "generatedAt": "2026-11-19T10:00:00.000Z",
+  "generatedAt": "2026-11-19T12:00:00.000Z",
   "models": [
     {
       "costUsd": 5,
@@ -84,7 +84,7 @@ exports[`buildUsageReport > matches the snapshot 1`] = `
   "notes": [
     "Could not load something",
   ],
-  "since": "2026-11-14T22:00:00.000Z",
+  "since": "2026-11-15T00:00:00.000Z",
   "summary": {
     "autoCompactions": 2,
     "costUsd": 5.5,
@@ -120,7 +120,7 @@ exports[`buildUsageReport > matches the snapshot 1`] = `
       "tokens": 50,
     },
   ],
-  "until": "2026-11-19T10:00:00.000Z",
+  "until": "2026-11-19T12:00:00.000Z",
   "unusedListingTokens": 54,
   "unusedSkills": [
     {
