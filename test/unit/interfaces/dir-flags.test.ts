@@ -1,4 +1,4 @@
-import { join } from 'node:path';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { applyDirFlags, extractDirFlags } from '../../../src/interfaces/cli/dir-flags.js';
 
@@ -17,13 +17,13 @@ describe('extractDirFlags', () => {
       '/home/u',
     );
     expect(f.argv).toEqual([...base, 'tokens', '--json']);
-    expect(f.claudeDir).toBe('/w/.claude');
-    expect(f.cclensHome).toBe('/w/.cclens');
+    expect(f.claudeDir).toBe(resolve('/w/.claude'));
+    expect(f.cclensHome).toBe(resolve('/w/.cclens'));
   });
 
   it('expands ~ against the home directory', () => {
     const f = extractDirFlags([...base, '--claude-dir', '~/.claude-work'], '/home/u');
-    expect(f.claudeDir).toBe(join('/home/u', '.claude-work'));
+    expect(f.claudeDir).toBe(resolve('/home/u', '.claude-work'));
   });
 
   it('stops at --', () => {
