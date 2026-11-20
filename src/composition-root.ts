@@ -37,7 +37,7 @@ import { SystemOpener } from './adapters/system/system-opener.js';
 import { FileLogger } from './adapters/system/file-logger.js';
 import { NodeFileProbe } from './adapters/system/node-file-probe.js';
 import { NodeProcessRunner } from './adapters/system/node-process-runner.js';
-import { resolvePaths } from './adapters/system/paths.js';
+import { hookDirArgs, resolvePaths } from './adapters/system/paths.js';
 import { disabledPluginNames } from './core/domain/plugin-state.js';
 import { SystemClock } from './adapters/system/system-clock.js';
 import type { ClaudeSettingsManager } from './core/ports/claude-settings.js';
@@ -135,7 +135,7 @@ function defaultSelfCommand(env: NodeJS.ProcessEnv = process.env): string {
   } catch {
     // Keep the unresolved path; `cclens doctor` reports it if it is wrong.
   }
-  return `"${stableNodePath(env)}" "${resolved}"`;
+  return `"${stableNodePath(env)}" "${resolved}"${hookDirArgs(env)}`;
 }
 
 /**

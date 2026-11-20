@@ -2,13 +2,18 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import type { Paths } from '../../core/ports/infrastructure.js';
 
-/** Resolves every location cclens reads or writes. Honours CCLENS_HOME and CLAUDE_CONFIG_DIR. */
+/**
+ * Resolves every location cclens reads or writes. Honours CCLENS_HOME and the Claude dir:
+ * CCLENS_CLAUDE_DIR (set by `--claude-dir`) first, then CLAUDE_CONFIG_DIR. Only with
+ * CCLENS_CLAUDE_DIR is the environment isolated: the desktop app's plugins are left out.
+ */
 export function resolvePaths(
   env: NodeJS.ProcessEnv = process.env,
   home: string = homedir(),
 ): Paths {
   const cclensHome = env['CCLENS_HOME'] ?? join(home, '.cclens');
-  const claudeHome = env['CLAUDE_CONFIG_DIR'] ?? join(home, '.claude');
+  const isolated = env['CCLENS_CLAUDE_DIR'] || undefined;
+  const claudeHome = isolated ?? env['CLAUDE_CONFIG_DIR'] ?? join(home, '.claude');
   return {
     home: cclensHome,
     configFile: join(cclensHome, 'config.json'),
@@ -21,7 +26,7 @@ export function resolvePaths(
     claudeHome,
     claudeProjectsDir: join(claudeHome, 'projects'),
     claudeSkillsDir: join(claudeHome, 'skills'),
-    pluginRoots: pluginRoots(claudeHome, home, env),
+    pluginRoots: isolated ? [join(claudeHome, 'plugins')] : pluginRoots(claudeHome, home, env),
     legacyUsageLog: join(claudeHome, 'skill-usage.log'),
   };
 }
@@ -37,4 +42,18 @@ function pluginRoots(claudeHome: string, home: string, env: NodeJS.ProcessEnv): 
         : join(env['XDG_CONFIG_HOME'] ?? join(home, '.config'), 'Claude');
   roots.push(join(desktop, 'local-agent-mode-sessions'));
   return roots;
+}
+
+/**
+ * The flags a hook command must carry to record into this same environment, e.g.
+ * ` --claude-dir "/x/.claude-work" --cclens-home "/x/.cclens-work"`. Empty by default,
+ * so hooks of an ordinary setup are unchanged.
+ */
+export function hookDirArgs(env: NodeJS.ProcessEnv = process.env): string {
+  const parts: string[] = [];
+  const claudeDir = env['CCLENS_CLAUDE_DIR'];
+  const cclensHome = env['CCLENS_HOME'];
+  if (claudeDir) parts.push(`--claude-dir "${claudeDir}"`);
+  if (cclensHome) parts.push(`--cclens-home "${cclensHome}"`);
+  return parts.length === 0 ? '' : ` ${parts.join(' ')}`;
 }

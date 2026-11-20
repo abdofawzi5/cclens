@@ -158,6 +158,9 @@ export function buildProgram(
     .description('Claude Code Lens: skills, usage, tokens, optimization tips and skill search')
     .version(version)
     .option('--json', 'machine-readable JSON output')
+    // Read and removed from argv by main.ts (dir-flags.ts); listed here for --help.
+    .option('--claude-dir <dir>', 'read only this Claude Code config dir (default ~/.claude)')
+    .option('--cclens-home <dir>', 'keep cclens data in this dir (default ~/.cclens)')
     .showHelpAfterError();
 
   const json = new JsonRenderer();
