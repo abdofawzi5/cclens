@@ -1,5 +1,16 @@
 # @abdofawzi5/cclens
 
+## 1.1.0
+
+### Minor Changes
+
+- aec18bb: `cclens advise` (alias `optimize`) now always ends with an action plan: up to five structural changes ranked by estimated dollars saved a month, each with the numbers behind it and the exact files to change. It suggests a Sonnet helper subagent for recurring jobs that spend most of their Opus calls on shell commands, a helper that looks at images instead of the main session, `grep`/`tail` for big files a job reads whole on most runs, and a lean per-folder `.claude/settings.json` that turns off plugins and MCP servers never used in that folder. To do this, cclens now reads more from each transcript: model calls, context size per call, tool calls, image reads, file read sizes, MCP servers used and the session's folder. `--json` gains `plan`.
+
+### Patch Changes
+
+- 189f946: `cclens search` no longer drops SkillsMP when `--limit` is above 50: it now asks SkillsMP for at most 50 results, the most its API accepts. The "Showing N of M" line now counts only results that pass the filters and says how many `--min-stars` or archived repositories hid. `--json` gains `filteredOut`.
+- f8b2ea0: Skills and agents of plugins turned off with `claude plugin disable` no longer count as installed, so `cclens skills --unused`, `review` and `optimize` stop suggesting plugins you already disabled.
+
 ## 1.0.1
 
 ### Patch Changes
