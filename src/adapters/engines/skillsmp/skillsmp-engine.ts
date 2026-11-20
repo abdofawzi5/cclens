@@ -34,7 +34,11 @@ export interface SkillsMpOptions {
   readonly apiKey?: string;
 }
 
+/** SkillsMP answers HTTP 400 when asked for more than 50 results per page. */
+const SKILLSMP_MAX_LIMIT = 50;
+
 /** SkillsMP marketplace search (official API; stars are the source repository's). */
+
 export class SkillsMpEngine implements SkillSearchEngine {
   readonly descriptor: EngineDescriptor;
 
@@ -56,7 +60,7 @@ export class SkillsMpEngine implements SkillSearchEngine {
   async search(query: SearchQuery, signal: AbortSignal): Promise<readonly SearchResult[]> {
     const params = new URLSearchParams({
       q: query.text,
-      limit: String(Math.min(query.limit, 100)),
+      limit: String(Math.min(query.limit, SKILLSMP_MAX_LIMIT)),
       sortBy: 'stars',
     });
     const key = this.options.apiKey ? this.secrets.resolve(this.options.apiKey) : undefined;

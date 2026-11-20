@@ -148,6 +148,7 @@ describe('SearchService', () => {
       ['two', true],
     ]);
     expect(report.totalFound).toBe(2);
+    expect(report.filteredOut).toBe(0);
     expect(report.notes).toEqual([]);
   });
 
@@ -212,6 +213,7 @@ describe('SearchService', () => {
       }),
     ]);
     expect(report.totalFound).toBe(4);
+    expect(report.filteredOut).toBe(3);
     const withArchived = await search.search('seo', { includeArchived: true, engines: ['one'] });
     expect(withArchived.results.map((r) => r.name)).toContain('old');
   });

@@ -78,6 +78,8 @@ export interface SearchReport {
   readonly outcomes: readonly EngineOutcome[];
   /** Results found before the limit and filters were applied. */
   readonly totalFound: number;
+  /** How many of `totalFound` the filters hid (`--min-stars`, archived repositories). */
+  readonly filteredOut: number;
   /** Partial failures that did not stop the search (for example star enrichment). */
   readonly notes: readonly string[];
 }

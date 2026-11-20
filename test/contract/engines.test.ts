@@ -125,6 +125,15 @@ describe('SkillsMpEngine (contract, recorded skills/search)', () => {
     expect(results[0]?.updatedAt).toEqual(new Date(1778999500 * 1000));
   });
 
+  it('asks for at most 50 results, the most SkillsMP accepts', async () => {
+    const http = new FakeHttp().route(/./, json({ data: { skills: [] } }));
+    await new SkillsMpEngine(http, new FixedSecrets(), {
+      id: 'skillsmp',
+      baseUrl: 'https://x.test',
+    }).search({ ...query, limit: 100 }, signal);
+    expect(new URL(http.calls[0]?.url ?? '').searchParams.get('limit')).toBe('50');
+  });
+
   it('sends the API key when configured and set', async () => {
     const http = new FakeHttp().route(/./, json({ data: { skills: [] } }));
     await new SkillsMpEngine(http, new FixedSecrets({ KEY: 'k' }), {

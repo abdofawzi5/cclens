@@ -80,6 +80,7 @@ function deps(overrides: Partial<AdviseDeps> = {}): AdviseDeps & { queries: stri
           ],
           outcomes: [],
           totalFound: 3,
+          filteredOut: 0,
           notes: [],
         });
       },

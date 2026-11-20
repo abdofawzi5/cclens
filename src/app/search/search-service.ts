@@ -116,7 +116,14 @@ export class SearchService {
     );
     const ranked = RANKINGS[query.sort].rank(filtered, query).slice(0, query.limit);
 
-    return { query, results: ranked, outcomes: settled.map((s) => s.outcome), totalFound, notes };
+    return {
+      query,
+      results: ranked,
+      outcomes: settled.map((s) => s.outcome),
+      totalFound,
+      filteredOut: totalFound - filtered.length,
+      notes,
+    };
   }
 
   private select(engines: readonly EngineConfig[], ids?: readonly string[]): EngineConfig[] {

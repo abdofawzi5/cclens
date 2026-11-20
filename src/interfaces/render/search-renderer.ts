@@ -45,9 +45,14 @@ export class SearchRenderer implements Renderer {
       out.push('');
     });
     const sort = `sorted by ${report.query.sort}`;
+    const matching = report.totalFound - report.filteredOut;
+    const hidden =
+      report.filteredOut > 0
+        ? ` (${report.filteredOut} more hidden by --min-stars or because they are archived)`
+        : '';
     out.push(
       pc.dim(
-        `Showing ${report.results.length} of ${report.totalFound} after merging duplicates, ${sort}.`,
+        `Showing ${report.results.length} of ${matching} after merging duplicates${hidden}, ${sort}.`,
       ),
     );
     for (const o of report.outcomes) out.push(pc.dim(outcomeLine(o, this.unofficial)));

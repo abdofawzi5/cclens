@@ -160,11 +160,14 @@ describe('SearchRenderer', () => {
       results: [],
       outcomes: [],
       totalFound: 0,
+      filteredOut: 0,
       notes: ['Could not add GitHub stars: x'],
     };
     const empty = strip(new SearchRenderer().render(base));
     expect(empty).toContain('No skills found for "zzz".');
     expect(empty).toContain('! Could not add GitHub stars: x');
+    expect(empty).toContain('Showing 0 of 0 after merging duplicates, sorted by stars.');
+    expect(empty).not.toContain('hidden');
 
     const full = strip(
       new SearchRenderer(new Set(), 60).render({
@@ -187,5 +190,12 @@ describe('SearchRenderer', () => {
     expect(full).toContain('…');
     expect(full).toContain('2. pdf  ✔ same name installed');
     expect(full).toContain('✔ github: 1 results, cached');
+
+    const filtered = strip(
+      new SearchRenderer(new Set(), 200).render({ ...base, totalFound: 200, filteredOut: 189 }),
+    );
+    expect(filtered).toContain(
+      'Showing 0 of 11 after merging duplicates (189 more hidden by --min-stars or because they are archived), sorted by stars.',
+    );
   });
 });
