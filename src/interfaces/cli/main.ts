@@ -8,9 +8,14 @@ const version = typeof __CCLENS_VERSION__ === 'string' ? __CCLENS_VERSION__ : '0
  */
 
 async function main(): Promise<void> {
-  if (process.argv[2] === 'statusline' && !process.argv.includes('--help')) {
+  // `--claude-dir` / `--cclens-home` go first: every path below is resolved from them.
+  const { extractDirFlags, applyDirFlags } = await import('./dir-flags.js');
+  const flags = extractDirFlags(process.argv);
+  applyDirFlags(flags);
+  const argv = [...flags.argv];
+  if (argv[2] === 'statusline' && !argv.includes('--help')) {
     const { runStatusline } = await import('../statusline/statusline.js');
-    await runStatusline(process.argv.slice(3));
+    await runStatusline(argv.slice(3));
     return;
   }
   const [{ createContainer }, { buildProgram }] = await Promise.all([
@@ -18,7 +23,7 @@ async function main(): Promise<void> {
     import('./program.js'),
   ]);
   const container = createContainer({ verbose: process.env['CCLENS_DEBUG'] === '1', version });
-  await buildProgram(container, version).parseAsync(process.argv);
+  await buildProgram(container, version).parseAsync(argv);
 }
 
 main().catch(async (error: unknown) => {

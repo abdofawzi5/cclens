@@ -67,6 +67,15 @@ cclens init --plugin
 
 Sessions are shown by name, `Title (abcd1234)`: the title Claude Code gave the session, or the start of its first prompt. `--json` includes `title` and where it came from. Session names stay on your machine; `review --ai` never sends them.
 
+Every command also accepts `--claude-dir <dir>` and `--cclens-home <dir>` to work on one environment only, e.g. a second Claude Code config dir:
+
+```bash
+cclens init --claude-dir ~/.claude-work --cclens-home ~/.cclens-work
+cclens advise --claude-dir ~/.claude-work --cclens-home ~/.cclens-work
+```
+
+With `--claude-dir`, transcripts, skills, plugins and token numbers come from that dir alone (the Claude desktop app's plugins are left out), and `init` writes both flags into the hooks it registers, so skill uses from that environment are recorded in its own `--cclens-home`. The same works with environment variables: `CCLENS_CLAUDE_DIR` and `CCLENS_HOME`. Plain `CLAUDE_CONFIG_DIR` is honoured too, but keeps the desktop app's plugins in the list. With the plugin setup, export `CCLENS_HOME` where Claude Code runs instead, since the plugin's hook can't take flags.
+
 Every command accepts `--json`. Dates accept `YYYY-MM-DD`, `YYYYMMDD` or relative values like `7d`, `4w`, `3m`.
 
 Skills are found in `~/.claude/skills` (personal), `.claude/skills` (project), Claude Code's plugin folder, and the Claude desktop app's plugin folder. Claude Code's built-in skills, which aren't stored on disk, aren't listed. Token numbers come from [ccusage](https://github.com/ryoppippi/ccusage); costs are estimates at API list prices, not what your plan bills.
