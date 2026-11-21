@@ -8,10 +8,12 @@ import type { FixHint } from './fix-hints.js';
 import type { Job } from './jobs.js';
 import type { OverheadSummary } from './overhead.js';
 import type { SessionActivity, SessionTurns } from './review.js';
+import { SessionLabels } from './session-labels.js';
 import type { SessionTokens } from './tokens.js';
 import { compact, percent, usd } from '../util/format.js';
 
-export type PlanKind = 'lean-setup' | 'cheaper-helper' | 'images-in-helper' | 'big-reads';
+export type PlanKind =
+  'lean-setup' | 'split-sessions' | 'cheaper-helper' | 'images-in-helper' | 'big-reads';
 
 export interface PlanItem {
   readonly kind: PlanKind;
@@ -29,6 +31,8 @@ export interface ActionPlan {
   /** Biggest saving first. */
   readonly items: readonly PlanItem[];
   readonly monthlyUsd: number;
+  /** Items under `minMonthlyUsd` but over `minorMonthlyUsd`, biggest first; not in `monthlyUsd`. */
+  readonly smaller: readonly PlanItem[];
 }
 
 export interface PlanInput {
@@ -43,7 +47,14 @@ export interface PlanInput {
 export interface PlanOptions {
   /** Items saving less than this a month are left out. */
   readonly minMonthlyUsd: number;
+  /** Items saving at least this (but under `minMonthlyUsd`) are listed as smaller wins. */
+  readonly minorMonthlyUsd: number;
   readonly maxItems: number;
+  readonly maxSmaller: number;
+  /** A session re-reading at least this many cached tokens is a long one (as the long-sessions rule). */
+  readonly longSessionCacheReads: number;
+  /** Share of a long session's context growth saved by splitting it into tasks. */
+  readonly splitSaving: number;
   /** A job runs at least this many Bash calls per run before a cheaper helper is suggested. */
   readonly minShellCalls: number;
   /** Images read per run before moving the looking to a helper is suggested. */
@@ -58,7 +69,11 @@ export interface PlanOptions {
 
 const DEFAULTS: PlanOptions = {
   minMonthlyUsd: 5,
+  minorMonthlyUsd: 1,
   maxItems: 5,
+  maxSmaller: 3,
+  longSessionCacheReads: 20_000_000,
+  splitSaving: 0.5,
   minShellCalls: 15,
   minImageReads: 2,
   bigReadTokens: 4_000,
@@ -161,7 +176,7 @@ function leanSetup(input: PlanInput, o: PlanOptions): PlanItem[] {
       context += t.contextTokens;
     }
     const monthly = (saved * 30) / Math.max(1, input.windowDays);
-    if (monthly < o.minMonthlyUsd) continue;
+    if (monthly < Math.min(o.minMonthlyUsd, o.minorMonthlyUsd)) continue;
     const plugins = input.disable.flatMap((h) => pluginKey(h) ?? []);
     const deny = removable.servers.map((s) => `"mcp__${s.server}"`);
     const settings = `${shortPath(folder)}/.claude/settings.json`;
@@ -197,6 +212,58 @@ function leanSetup(input: PlanInput, o: PlanOptions): PlanItem[] {
           : ''
       }`,
       steps,
+      monthlyUsd: monthly,
+    });
+  }
+  return items;
+}
+
+/**
+ * Long hand-started sessions: every call re-sends the conversation so far, so the
+ * context grows with each turn. Splitting the work into one session per task cuts
+ * that growth; the part every call starts with (firstContextTokens) stays.
+ */
+function splitSessions(input: PlanInput, o: PlanOptions): PlanItem[] {
+  const tokens = new Map(input.sessions.map((s) => [s.sessionId, s]));
+  const labels = SessionLabels.from(input.activity);
+  const byFolder = new Map<string, { a: SessionActivity; saved: number; reads: number }[]>();
+  for (const a of input.activity) {
+    const t = a.turns;
+    const s = tokens.get(a.sessionId);
+    if (!t || !a.cwd || a.scheduledTask || !s || t.contextTokens <= 0) continue;
+    if (s.counts.cacheRead < o.longSessionCacheReads) continue;
+    const growth = Math.max(0, t.contextTokens - t.modelCalls * t.firstContextTokens);
+    const saved = s.costUsd * (growth / t.contextTokens) * o.splitSaving;
+    const list = byFolder.get(a.cwd) ?? [];
+    list.push({ a, saved, reads: s.counts.cacheRead });
+    byFolder.set(a.cwd, list);
+  }
+  const items: PlanItem[] = [];
+  for (const [folder, list] of byFolder) {
+    const monthly = (list.reduce((n, x) => n + x.saved, 0) * 30) / Math.max(1, input.windowDays);
+    if (monthly <= 0) continue;
+    list.sort((x, y) => y.reads - x.reads);
+    const compactions = list.reduce((n, x) => n + x.a.autoCompactions, 0);
+    const peak = Math.max(...list.map((x) => x.a.turns?.maxContextTokens ?? 0));
+    const plural = list.length === 1 ? 'session' : 'sessions';
+    items.push({
+      kind: 'split-sessions',
+      title: `Split long sessions in ${baseName(folder)} into one per task`,
+      target: shortPath(folder),
+      why: `${String(list.length)} ${plural} here kept going until each call re-sent up to ~${compact(peak)} tokens of conversation${
+        compactions > 0
+          ? ` (${String(compactions)} auto-compaction${compactions === 1 ? '' : 's'})`
+          : ''
+      }. Largest: ${list
+        .slice(0, 3)
+        .map((x) => `${labels.label(x.a.sessionId)} (${compact(x.reads)} cache reads)`)
+        .join(', ')}.`,
+      steps: [
+        'Start a new session (or /clear) when the task changes; a review, a fix and a research question are three sessions',
+        `Before ending a long task, have Claude write what to carry over to a short notes file (e.g. ${shortPath(folder)}/docs/notes/<task>.md) and start the next session from it`,
+        'Hand wide searches and page-by-page reviews to a subagent (Explore) so only its summary lands in your session',
+        'If you must continue, /compact with a focus at a natural break instead of waiting for auto-compaction',
+      ],
       monthlyUsd: monthly,
     });
   }
@@ -297,13 +364,22 @@ function jobItems(input: PlanInput, o: PlanOptions): PlanItem[] {
   return items;
 }
 
-/** The ranked action plan; empty when nothing saves at least `minMonthlyUsd`. */
+/**
+ * The ranked action plan. `items` are the changes saving at least `minMonthlyUsd`;
+ * the next few under it are kept as `smaller`, so a quiet project still gets a plan.
+ */
 export function buildActionPlan(input: PlanInput, options: Partial<PlanOptions> = {}): ActionPlan {
   const o = { ...DEFAULTS, ...options };
-  const items = [...leanSetup(input, o), ...jobItems(input, o)]
-    .sort((a, b) => b.monthlyUsd - a.monthlyUsd)
-    .slice(0, o.maxItems);
-  return { items, monthlyUsd: items.reduce((n, i) => n + i.monthlyUsd, 0) };
+  const all = [
+    ...leanSetup(input, o),
+    ...splitSessions(input, o),
+    ...jobItems(input, { ...o, minMonthlyUsd: Math.min(o.minMonthlyUsd, o.minorMonthlyUsd) }),
+  ].sort((a, b) => b.monthlyUsd - a.monthlyUsd);
+  const items = all.filter((i) => i.monthlyUsd >= o.minMonthlyUsd).slice(0, o.maxItems);
+  const smaller = all
+    .filter((i) => i.monthlyUsd < o.minMonthlyUsd && i.monthlyUsd >= o.minorMonthlyUsd)
+    .slice(0, o.maxSmaller);
+  return { items, monthlyUsd: items.reduce((n, i) => n + i.monthlyUsd, 0), smaller };
 }
 
 /** One line for an item's saving. */

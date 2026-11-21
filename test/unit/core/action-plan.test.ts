@@ -155,4 +155,49 @@ describe('buildActionPlan', () => {
     const [first, second] = big.items.map((i) => i.monthlyUsd);
     expect(first).toBeGreaterThanOrEqual(second ?? 0);
   });
+
+  it('splits long hand-started sessions, counting only the growing part of the context', () => {
+    const act = [
+      activity('long', {
+        cwd: '/Users/me/site',
+        autoCompactions: 2,
+        title: { text: 'UI review', source: 'custom' },
+        turns: turns({ modelCalls: 300, firstContextTokens: 100_000, contextTokens: 120_000_000 }),
+      }),
+      activity('short', {
+        cwd: '/Users/me/site',
+        turns: turns({ modelCalls: 10, contextTokens: 1_500_000 }),
+      }),
+    ];
+    const sessions = [
+      { ...session('long', { cacheRead: 118_000_000 }), costUsd: 40 },
+      { ...session('short', { cacheRead: 1_400_000 }), costUsd: 1 },
+    ];
+    const plan = buildActionPlan({
+      jobs: [],
+      activity: act,
+      sessions,
+      disable: [],
+      windowDays: 30,
+    });
+    const split = plan.items.find((i) => i.kind === 'split-sessions');
+    expect(split?.target).toBe('~/site');
+    // Growth is 120M - 300 × 100K = 90M of 120M; half of that share of $40.
+    expect(split?.monthlyUsd).toBeCloseTo(15, 5);
+    expect(split?.why).toContain('1 session here');
+    expect(split?.why).toContain('2 auto-compactions');
+    expect(split?.why).not.toContain('short');
+  });
+
+  it('keeps changes under $5 a month as smaller wins instead of dropping them', () => {
+    const input = dailyRuns('daily-build', { shellCalls: 0, mcpServersUsed: ['kokoro'] });
+    const plan = buildActionPlan(
+      { ...input, overhead, disable: [unusedPlugin] },
+      { minMonthlyUsd: 1_000 },
+    );
+    expect(plan.items).toEqual([]);
+    expect(plan.monthlyUsd).toBe(0);
+    expect(plan.smaller.map((i) => i.kind)).toContain('lean-setup');
+    expect(buildActionPlan(dailyRuns('b', { shellCalls: 3 })).smaller).toEqual([]);
+  });
 });

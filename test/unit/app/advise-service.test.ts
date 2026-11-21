@@ -101,7 +101,7 @@ const emptyAdvice = {
   disable: [],
   discover: [],
   budget: [],
-  plan: { items: [], monthlyUsd: 0 },
+  plan: { items: [], monthlyUsd: 0, smaller: [] },
   notes: [],
 };
 
@@ -120,10 +120,11 @@ describe('AdviseService', () => {
     expect(text).toContain('claude plugin disable mkt@market');
     expect(text).toContain('daily-seo-report (scheduled, 4 runs');
     expect(text).toContain('https://example.com/seo-report');
-    // No turn data in this fixture: the plan section still prints, pointing at suggestion 1.
+    // No turn data in this fixture: the plan section still prints, saying why it is empty.
     expect(advice.plan.items).toEqual([]);
     expect(text).toContain('Action plan: biggest wins first');
-    expect(text).toContain('start with suggestion 1: All Opus');
+    expect(text).toContain('No structural change would save $1 or more a month here');
+    expect(text).toContain('(All Opus');
   });
 
   it('prints the action plan last, with its steps', () => {
@@ -131,6 +132,7 @@ describe('AdviseService', () => {
       ...emptyAdvice,
       plan: {
         monthlyUsd: 40,
+        smaller: [],
         items: [
           {
             kind: 'cheaper-helper' as const,
@@ -149,6 +151,39 @@ describe('AdviseService', () => {
     expect(text).toContain('1. Hand daily-build to a Sonnet helper saves ~$40.00 a month');
     expect(text).toContain('→ Add to ~/x/.claude/settings.json:');
     expect(text).toMatch(/\n {8}"enabledPlugins": \{\}/);
+  });
+
+  it('lists smaller wins when no change reaches $5 a month', () => {
+    const small = {
+      kind: 'lean-setup' as const,
+      title: 'Give site a lean setup',
+      target: '~/site',
+      why: 'Unused servers.',
+      steps: ['Turn them off'],
+      monthlyUsd: 4.35,
+    };
+    const only = strip(
+      new AdviceRenderer().render({
+        ...emptyAdvice,
+        plan: { items: [], monthlyUsd: 0, smaller: [small] },
+      }),
+    );
+    expect(only).toContain('No single change saves $5 a month here');
+    expect(only).toContain('1. Give site a lean setup saves ~$4.35 a month');
+    expect(only).not.toContain('Smaller wins');
+
+    const both = strip(
+      new AdviceRenderer().render({
+        ...emptyAdvice,
+        plan: {
+          monthlyUsd: 20,
+          items: [{ ...small, kind: 'split-sessions' as const, title: 'Split', monthlyUsd: 20 }],
+          smaller: [small],
+        },
+      }),
+    );
+    expect(both).toContain('Smaller wins (under $5 a month each)');
+    expect(both).toContain('2. Give site a lean setup');
   });
 
   it('skips the registry search with search: false and survives a failing search', async () => {
