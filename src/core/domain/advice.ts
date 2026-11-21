@@ -23,6 +23,8 @@ export interface SkillSuggestion {
 }
 
 export interface Advice {
+  /** Set when the advice covers one project folder only (`--project`). */
+  readonly project?: string;
   readonly since: Date;
   readonly until: Date;
   readonly windowDays: number;

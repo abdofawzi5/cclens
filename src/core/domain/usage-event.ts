@@ -25,6 +25,8 @@ export interface UsageFilter {
   readonly until?: Date;
   readonly skill?: string;
   readonly project?: string;
+  /** Only uses recorded in these sessions (uses without a session id are left out). */
+  readonly sessionIds?: ReadonlySet<string>;
   readonly sources?: readonly UsageSource[];
 }
 
@@ -34,6 +36,7 @@ export function matchesUsageFilter(e: UsageEvent, f: UsageFilter): boolean {
   if (f.until && e.ts > f.until) return false;
   if (f.skill !== undefined && e.skill !== f.skill) return false;
   if (f.project !== undefined && e.project !== f.project) return false;
+  if (f.sessionIds && !(e.sessionId && f.sessionIds.has(e.sessionId))) return false;
   if (f.sources && !f.sources.includes(e.source)) return false;
   return true;
 }
