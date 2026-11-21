@@ -1,6 +1,8 @@
+import { homedir } from 'node:os';
 import { Argument, type Command } from 'commander';
 import pc from 'picocolors';
 import { TOKEN_VIEWS, type TokenReport, type TokenView } from '../../../app/token-service.js';
+import { projectQuery } from '../project-query.js';
 import { SessionLabels } from '../../../core/domain/session-labels.js';
 import type { TokenCounts } from '../../../core/domain/tokens.js';
 import { totalTokens } from '../../../core/domain/tokens.js';
@@ -81,7 +83,10 @@ export class TokensCommand implements CliCommand {
         parseDateOption(v),
       )
       .option('--until <date>', 'up to this date', (v) => parseDateOption(v))
-      .option('--project <name>', 'only this project (ccusage project name)')
+      .option(
+        '--project <name>',
+        'only this project: a folder path, its name (site), or the full name from `tokens project`',
+      )
       .option('--limit <n>', 'latest n periods, or top n sessions/projects', parsePositiveInt)
       .action(async (view: TokenView, flags: TokensFlags) => {
         const report = await ctx.services.tokens.report(
@@ -89,7 +94,9 @@ export class TokensCommand implements CliCommand {
           {
             ...(flags.since ? { since: flags.since } : {}),
             ...(flags.until ? { until: flags.until } : {}),
-            ...(flags.project ? { project: flags.project } : {}),
+            ...(flags.project
+              ? { project: projectQuery(flags.project, homedir(), process.cwd()) }
+              : {}),
           },
           flags.limit,
         );
