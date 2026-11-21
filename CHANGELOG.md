@@ -1,5 +1,11 @@
 # @abdofawzi5/cclens
 
+## 1.4.0
+
+### Minor Changes
+
+- ebdd452: `advise`: the action plan now suggests splitting long hand-started sessions into one per task, and lists changes under $5 a month as smaller wins instead of dropping them, so a project whose costs come from a few long sessions no longer gets an empty plan.
+
 ## 1.3.0
 
 ### Minor Changes
