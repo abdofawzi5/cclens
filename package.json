@@ -1,6 +1,6 @@
 {
   "name": "@abdofawzi5/cclens",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Claude Code Lens: skill inventory and usage, token stats, session optimization advice, and skill discovery across registries.",
   "type": "module",
   "license": "MIT",
