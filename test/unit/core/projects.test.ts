@@ -1,3 +1,4 @@
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { encodeProjectPath, resolveProject } from '../../../src/core/domain/projects.js';
 import { projectQuery } from '../../../src/interfaces/cli/project-query.js';
@@ -18,13 +19,11 @@ describe('encodeProjectPath', () => {
 
 describe('projectQuery', () => {
   it('encodes paths relative to cwd or home', () => {
-    expect(projectQuery('.', '/Users/me', '/Users/me/Workspace/site')).toBe(
-      '-Users-me-Workspace-site',
-    );
-    expect(projectQuery('~/Workspace/site', '/Users/me', '/tmp')).toBe('-Users-me-Workspace-site');
-    expect(projectQuery('/Users/me/Workspace/site/', '/Users/me', '/tmp')).toBe(
-      '-Users-me-Workspace-site',
-    );
+    // Resolved per platform: on Windows the drive letter is part of the name (C--Users-…).
+    const site = encodeProjectPath(resolve('/Users/me/Workspace/site'));
+    expect(projectQuery('.', '/Users/me', '/Users/me/Workspace/site')).toBe(site);
+    expect(projectQuery('~/Workspace/site', '/Users/me', '/tmp')).toBe(site);
+    expect(projectQuery('/Users/me/Workspace/site/', '/Users/me', '/tmp')).toBe(site);
   });
 
   it('keeps names as typed', () => {
