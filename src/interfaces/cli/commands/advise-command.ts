@@ -1,7 +1,7 @@
 import { homedir } from 'node:os';
 import type { Command } from 'commander';
 import pc from 'picocolors';
-import { planSaving } from '../../../core/domain/action-plan.js';
+import { type PlanItem, planSaving } from '../../../core/domain/action-plan.js';
 import type { Advice } from '../../../core/domain/advice.js';
 import type { FixHint } from '../../../core/domain/fix-hints.js';
 import type { Recommendation, Severity } from '../../../core/domain/recommendation.js';
@@ -160,31 +160,46 @@ export class AdviceRenderer implements Renderer {
 
   private plan(a: Advice): string[] {
     const plan = a.plan;
+    const smaller = plan.smaller;
     const out = [
       pc.bold('Action plan: biggest wins first') +
         (plan.items.length > 0 ? pc.dim(` (~${usd(plan.monthlyUsd)} a month in all)`) : ''),
     ];
-    if (plan.items.length === 0) {
+    if (plan.items.length === 0 && smaller.length === 0) {
       const first = a.suggestions[0];
       out.push(
         first
-          ? `  No structural change stands out; start with suggestion 1: ${first.title}.`
+          ? `  No structural change would save $1 or more a month here; the suggestions above are where to start (${first.title}).`
           : pc.green('  Nothing big to change.'),
         '',
       );
       return out;
     }
-    plan.items.forEach((item, i) => {
+    if (plan.items.length === 0) {
       out.push(
-        `${pc.dim(`${String(i + 1).padStart(2)}.`)} ${pc.bold(item.title)} ${pc.green(`saves ${planSaving(item)}`)}`,
+        pc.dim('  No single change saves $5 a month here; these smaller ones still add up.'),
       );
-      out.push(...wrap(item.why, this.width, '      '));
-      for (const step of item.steps) {
+    }
+    const item = (p: PlanItem, n: number): void => {
+      out.push(
+        `${pc.dim(`${String(n).padStart(2)}.`)} ${pc.bold(p.title)} ${pc.green(`saves ${planSaving(p)}`)}`,
+      );
+      out.push(...wrap(p.why, this.width, '      '));
+      for (const step of p.steps) {
         // Indented steps continue the one before (e.g. lines of a settings file).
         out.push(
           step.startsWith('  ') ? `        ${step.trim()}` : `      ${pc.cyan('→')} ${step}`,
         );
       }
+    };
+    plan.items.forEach((p, i) => {
+      item(p, i + 1);
+    });
+    if (smaller.length > 0 && plan.items.length > 0) {
+      out.push(pc.bold('  Smaller wins (under $5 a month each)'));
+    }
+    smaller.forEach((p, i) => {
+      item(p, plan.items.length + i + 1);
     });
     out.push(pc.dim('  Rough estimates from your transcripts; cclens changes nothing itself.'), '');
     return out;
