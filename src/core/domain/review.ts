@@ -69,6 +69,8 @@ export type ReviewScope =
 export interface ReviewContext {
   readonly now: Date;
   readonly scope: ReviewScope;
+  /** Set when only one project folder is reviewed; skill uses are then that project's. */
+  readonly project?: string;
   readonly since: Date;
   readonly windowDays: number;
   readonly installedSkills: readonly Skill[];
@@ -105,6 +107,8 @@ export type AiReviewStatus =
 
 export interface ReviewReport {
   readonly scope: ReviewScope;
+  /** Set when the review covers one project folder only (`--project`). */
+  readonly project?: string;
   readonly since: Date;
   readonly until: Date;
   readonly summary: ReviewSummary;

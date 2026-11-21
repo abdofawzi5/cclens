@@ -8,9 +8,33 @@ import type { OptimizationRule } from '../../../src/core/ports/review.js';
 import { withUnrecorded } from '../../../src/core/domain/overhead.js';
 import { defaultConfig } from '../../../src/core/config/defaults.js';
 import { event, FixedClock, MemoryEventStore } from '../../support/fakes.js';
+import type { Period, TokenFilter } from '../../../src/core/domain/tokens.js';
 import { FakeTokens } from '../../support/fake-tokens.js';
 import { InMemoryConfigStore } from '../../support/in-memory-config-store.js';
 import { activity } from '../../support/review.js';
+
+const API = '-Users-me-Workspace-api';
+
+/** Two projects: the stock `site` one and `api`; records the daily filter it got. */
+class TwoProjects extends FakeTokens {
+  dailyFilters: (TokenFilter | undefined)[] = [];
+  override byPeriod(period: Period, filter?: TokenFilter) {
+    this.dailyFilters.push(filter);
+    return super.byPeriod(period);
+  }
+  override async bySession() {
+    const rows = await super.bySession();
+    const [first] = rows;
+    if (!first) throw new Error('fixture has no sessions');
+    return [...rows, { ...first, sessionId: 'api-1', project: API }];
+  }
+  override async byProject() {
+    const rows = await super.byProject();
+    const [first] = rows;
+    if (!first) throw new Error('fixture has no projects');
+    return [...rows, { ...first, project: API }];
+  }
+}
 
 /** Records the context it saw and returns fixed findings. */
 class SpyRule implements OptimizationRule {
@@ -252,5 +276,44 @@ describe('ReviewService', () => {
     });
     await svc.review();
     expect(window.seen[0]?.skillListing).toEqual({ 'mkt:seo': 4 });
+  });
+
+  it('narrows a review to one project', async () => {
+    const tokens = new TwoProjects();
+    const store = new MemoryEventStore();
+    store.events.push(
+      event('mkt:seo', '2026-11-19T09:00:00Z', { sessionId: 'api-1' }),
+      event('mkt:seo', '2026-11-19T09:00:00Z', { sessionId: 'cheap' }),
+      event('mkt:ads', '2026-11-19T09:00:00Z', { sessionId: 'cheap' }),
+    );
+    const acts = [
+      activity('cheap', { prompts: 4 }),
+      activity('api-1', { project: API, prompts: 2 }),
+    ];
+    const { svc, window } = service({
+      tokens,
+      usage: new UsageService(store, new FixedClock()),
+      activity: { read: () => Promise.resolve(acts) },
+    });
+    const r = await svc.review({ project: 'api', windowDays: 7 });
+    const ctx = window.seen[0];
+    expect(r.project).toBe(API);
+    expect(ctx?.sessions.map((x) => x.sessionId)).toEqual(['api-1']);
+    expect(ctx?.activity.map((x) => x.sessionId)).toEqual(['api-1']);
+    expect([...(ctx?.skillUseCounts ?? [])]).toEqual([['mkt:seo', 1]]);
+    expect(tokens.dailyFilters[0]?.project).toBe(API);
+    expect(r.summary.prompts).toBe(2);
+
+    // A session can still be picked inside the project, and only from it.
+    const one = await svc.review({ project: 'api', last: true });
+    expect(one.scope).toMatchObject({ kind: 'session', sessionId: 'api-1' });
+    await expect(svc.review({ project: 'api', sessionId: 'cheap' })).rejects.toThrow(
+      /No session matches/,
+    );
+  });
+
+  it('fails on a project name that matches nothing', async () => {
+    const { svc } = service({ tokens: new TwoProjects() });
+    await expect(svc.review({ project: 'nope' })).rejects.toThrow(/No project matches "nope"/);
   });
 });

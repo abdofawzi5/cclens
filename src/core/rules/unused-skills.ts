@@ -98,7 +98,7 @@ export class UnusedSkillsRule implements OptimizationRule {
       .map((g) => `${g.name} (${g.skills.length} skills, ~${compact(g.tokens)} tokens)`);
 
     const lines = [
-      `${skills} of ${ctx.installedSkills.length} installed skills had no recorded use in the last ${ctx.windowDays} days.`,
+      `${skills} of ${ctx.installedSkills.length} installed skills had no recorded use${ctx.project ? ' in this project' : ''} in the last ${ctx.windowDays} days.`,
       ctx.skillListing
         ? `Claude Code's skill listing gives them about ${compact(tokens)} tokens on every request (measured in your latest session). It drops descriptions when the list is long, so a long list also hides the descriptions of skills you do use, which makes Claude pick them less reliably.`
         : `Their names and descriptions add up to about ${compact(tokens)} tokens. Claude Code shortens the list when it is long, so the real cost per request is lower, but a long list also hides the descriptions of skills you do use, which makes Claude pick them less reliably.`,
@@ -115,12 +115,22 @@ export class UnusedSkillsRule implements OptimizationRule {
     lines.push('Uses outside Claude Code (for example in Cowork) are not recorded.');
 
     const actions = ['cclens skills --unused --fix   # the commands that turn them off'];
+    if (ctx.project) {
+      // Unused here may still be used elsewhere, so suggest a per-project switch first.
+      const folder = ctx.activity.find((a) => a.cwd)?.cwd ?? 'this project';
+      lines.push(
+        'Other projects may still use them, so turning them off everywhere could hide skills you need there.',
+      );
+      actions.unshift(
+        `Turn plugins off for this project only: set them to false under "enabledPlugins" in ${folder}/.claude/settings.json`,
+      );
+    }
 
     return [
       {
         ruleId: this.id,
         severity: tokens > this.options.warnAboveTokens ? 'warn' : 'info',
-        title: `${skills} installed skills unused in ${ctx.windowDays} days`,
+        title: `${skills} installed skills unused${ctx.project ? ' in this project' : ''} in ${ctx.windowDays} days`,
         detail: lines.join(' '),
         estimatedTokenSavings: tokens,
         savingsBasis: 'per-request',

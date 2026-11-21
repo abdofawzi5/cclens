@@ -63,6 +63,22 @@ describe('UnusedSkillsRule', () => {
     expect(rec?.severity).toBe('info');
   });
 
+  it('says "in this project" and offers a per-project switch first under --project', () => {
+    const [rec] = new UnusedSkillsRule().evaluate(
+      reviewContext({
+        project: '-Users-me-Workspace-site',
+        activity: [activity('s1', { cwd: '/Users/me/Workspace/site' })],
+        installedSkills: installed,
+        skillUseCounts: new Map([['mkt:seo', 2]]),
+      }),
+    );
+    expect(rec?.title).toBe('3 installed skills unused in this project in 30 days');
+    expect(rec?.detail).toContain('Other projects may still use them');
+    expect(rec?.actions[0]).toBe(
+      'Turn plugins off for this project only: set them to false under "enabledPlugins" in /Users/me/Workspace/site/.claude/settings.json',
+    );
+  });
+
   it('uses the measured listing when a transcript recorded one', () => {
     const [rec] = new UnusedSkillsRule().evaluate(
       reviewContext({

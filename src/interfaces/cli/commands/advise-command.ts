@@ -1,3 +1,4 @@
+import { homedir } from 'node:os';
 import type { Command } from 'commander';
 import pc from 'picocolors';
 import { planSaving } from '../../../core/domain/action-plan.js';
@@ -5,11 +6,12 @@ import type { Advice } from '../../../core/domain/advice.js';
 import type { FixHint } from '../../../core/domain/fix-hints.js';
 import type { Recommendation, Severity } from '../../../core/domain/recommendation.js';
 import { compact, localDay, percent, usd } from '../../../core/util/format.js';
-import { truncate } from '../../render/format.js';
+import { shortProject, truncate } from '../../render/format.js';
 import type { Renderer } from '../../render/renderer.js';
 import { wrap } from '../../render/review-renderer.js';
 import type { CliCommand, CommandContext } from '../command.js';
 import { parsePositiveInt } from '../dates.js';
+import { projectQuery } from '../project-query.js';
 import { formatOf } from '../options.js';
 
 interface AdviseFlags {
@@ -17,6 +19,7 @@ interface AdviseFlags {
   ai?: boolean;
   search: boolean;
   top?: number;
+  project?: string;
 }
 
 const BADGE: Record<Severity, string> = {
@@ -59,7 +62,9 @@ export class AdviceRenderer implements Renderer {
       facts.push(`~${compact(a.contextTokens)} tokens before the first prompt`);
     }
     const out = [
-      pc.bold(`Advice for ${localDay(a.since)} to ${localDay(a.until)}`),
+      pc.bold(
+        `Advice for ${a.project ? `${shortProject(a.project, homedir())}, ` : ''}${localDay(a.since)} to ${localDay(a.until)}`,
+      ),
       pc.dim(facts.join(' · ')),
       '',
     ];
@@ -203,11 +208,18 @@ export class AdviseCommand implements CliCommand {
       .option('--ai', 'also ask Claude (claude -p, your login) for suggestions; costs a few tokens')
       .option('--no-search', 'do not search skill registries for your repeated tasks (offline)')
       .option('--top <n>', 'how many suggestions to show (default 8)', parsePositiveInt)
+      .option(
+        '--project <name>',
+        'only this project: a folder path, its name (site), or the full name from `tokens project`',
+      )
       .action(async (flags: AdviseFlags) => {
         const advice = await ctx.services.advise.advise({
           ...(flags.days ? { windowDays: flags.days } : {}),
           ...(flags.ai ? { ai: true } : {}),
           search: flags.search,
+          ...(flags.project
+            ? { project: projectQuery(flags.project, homedir(), process.cwd()) }
+            : {}),
         });
         ctx.print(ctx.renderer(formatOf(program), new AdviceRenderer(flags.top)).render(advice));
       });

@@ -1,3 +1,4 @@
+import { homedir } from 'node:os';
 import { stripVTControlCharacters as strip } from 'node:util';
 import pc from 'picocolors';
 import type { RuleInfo } from '../../app/review-service.js';
@@ -11,7 +12,7 @@ import {
   type WindowStats,
 } from '../../core/domain/trend.js';
 import { localDay, percent } from '../../core/util/format.js';
-import { compact, usd } from './format.js';
+import { compact, shortProject, usd } from './format.js';
 import type { Renderer } from './renderer.js';
 
 const BADGE: Record<Severity, string> = {
@@ -134,7 +135,7 @@ export class ReviewRenderer implements Renderer {
     const heading =
       r.scope.kind === 'session'
         ? `Review of session ${r.scope.title ? SessionLabels.from([r.scope]).label(r.scope.sessionId) : r.scope.sessionId}`
-        : `Review of ${localDay(r.since)} to ${localDay(r.until)}`;
+        : `Review of ${r.project ? `${shortProject(r.project, homedir())}, ` : ''}${localDay(r.since)} to ${localDay(r.until)}`;
     const facts = [
       `${compact(s.totalTokens)} tokens`,
       `${usd(s.costUsd)} est.`,

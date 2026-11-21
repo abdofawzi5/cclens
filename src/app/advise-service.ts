@@ -31,6 +31,8 @@ export interface AdviseOptions {
   readonly searchJobs?: number;
   /** Skills shown per task. */
   readonly perJob?: number;
+  /** Only this project folder (see ReviewOptions.project). */
+  readonly project?: string;
 }
 
 export interface AdviseDeps {
@@ -63,6 +65,7 @@ export class AdviseService {
     const analysis = await this.deps.review.analyse({
       ...(options.windowDays ? { windowDays: options.windowDays } : {}),
       ...(options.ai ? { ai: true } : {}),
+      ...(options.project ? { project: options.project } : {}),
     });
     const { report, context: ctx } = analysis;
     const budgetDep = this.deps.budget;
@@ -85,6 +88,7 @@ export class AdviseService {
     const discover = await this.discover(ctx, options, notes);
 
     return {
+      ...(report.project ? { project: report.project } : {}),
       since: report.since,
       until: report.until,
       windowDays: ctx.windowDays,

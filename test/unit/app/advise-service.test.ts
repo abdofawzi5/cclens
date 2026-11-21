@@ -161,4 +161,24 @@ describe('AdviseService', () => {
     expect(advice.discover).toEqual([]);
     expect(advice.notes).toContain('Skill search for "seo report" failed: offline');
   });
+
+  it('passes --project to the review and names it in the advice', async () => {
+    const asked: (string | undefined)[] = [];
+    const d = deps({
+      review: {
+        analyse: (o) => {
+          asked.push(o?.project);
+          return Promise.resolve({
+            ...analysis,
+            report: { ...analysis.report, project: '-Users-me-Workspace-site' },
+          });
+        },
+      },
+    });
+    const advice = await new AdviseService(d).advise({ project: 'site', search: false });
+    expect(asked).toEqual(['site']);
+    expect(advice.project).toBe('-Users-me-Workspace-site');
+    // Shortened against the real home dir, so only the folder part is fixed.
+    expect(strip(new AdviceRenderer().render(advice))).toMatch(/^Advice for \S*Workspace-site, /);
+  });
 });

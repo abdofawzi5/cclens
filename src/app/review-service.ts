@@ -18,6 +18,7 @@ import type { AgentActivitySource, AgentSource } from '../core/ports/agents.js';
 import type { AiReviewer, OptimizationRule, SessionActivitySource } from '../core/ports/review.js';
 import type { SkillSource } from '../core/ports/skills.js';
 import { latestSkillListing } from '../core/domain/overhead.js';
+import { resolveProject } from '../core/domain/projects.js';
 import { type WindowComparison, windowStats } from '../core/domain/trend.js';
 import type { ContextOverheadSource } from '../core/ports/overhead.js';
 import type { TokenUsageProvider } from '../core/ports/tokens.js';
@@ -37,6 +38,11 @@ export interface ReviewOptions {
   readonly only?: readonly string[];
   /** Also total the previous window of the same length, for `--compare`. */
   readonly compare?: boolean;
+  /**
+   * Only this project folder: a short name (`site`), the name shown in tables
+   * (`Workspace-site`) or the full encoded name. Paths are turned into names by the CLI.
+   */
+  readonly project?: string;
 }
 
 export interface RuleInfo {
@@ -102,6 +108,13 @@ export class ReviewService {
     const since = startOfDay(new Date(now.getTime() - (windowDays - 1) * DAY_MS));
     const notes: string[] = [];
     const sessionMode = options.sessionId !== undefined || options.last === true;
+    // A wrong name is the user's mistake, so it fails the review instead of becoming a note.
+    const project = options.project
+      ? resolveProject(
+          options.project,
+          (await this.deps.tokens.byProject()).map((p) => p.project),
+        )
+      : undefined;
 
     const load = async <T>(what: string, fallback: T, task: () => Promise<T>): Promise<T> => {
       try {
@@ -127,7 +140,8 @@ export class ReviewService {
         sessionMode
           ? []
           : load('installed skills', [] as readonly Skill[], () => this.deps.skills.list()),
-        sessionMode
+        // With --project, skill uses are counted below, once the project's sessions are known.
+        sessionMode || project
           ? new Map<string, number>()
           : load('skill uses', new Map<string, number>() as ReadonlyMap<string, number>, () =>
               this.deps.usage.countBySkill({ since }),
@@ -136,7 +150,7 @@ export class ReviewService {
         sessionMode
           ? []
           : load('daily tokens (ccusage)', [] as readonly TokenBucket[], () =>
-              this.deps.tokens.byPeriod('day', { since }),
+              this.deps.tokens.byPeriod('day', { since, ...(project ? { project } : {}) }),
             ),
         load('session tokens (ccusage)', [] as readonly SessionTokens[], () =>
           this.deps.tokens.bySession(sessionMode && !options.last ? {} : { since }),
@@ -156,26 +170,38 @@ export class ReviewService {
     const skillListing = await listingTask;
 
     let scope: ReviewScope = { kind: 'window' };
-    let sessions = allSessions;
-    let activity = allActivity;
-    let agentRuns = allAgentActivity.runs;
+    let sessions = project ? allSessions.filter((s) => s.project === project) : allSessions;
+    let activity = project ? allActivity.filter((a) => a.project === project) : allActivity;
+    let agentRuns = project
+      ? allAgentActivity.runs.filter((r) => r.project === project)
+      : allAgentActivity.runs;
+    let skillUseCounts = counts;
+    if (project && !sessionMode) {
+      const ids = new Set([...sessions, ...activity].map((s) => s.sessionId));
+      skillUseCounts = await load(
+        'skill uses',
+        new Map<string, number>() as ReadonlyMap<string, number>,
+        () => this.deps.usage.countBySkill({ since, sessionIds: ids }),
+      );
+    }
     if (sessionMode) {
-      const labels = SessionLabels.from(allActivity);
-      const id = this.resolveSession(options, allSessions, allActivity, labels);
+      const labels = SessionLabels.from(activity);
+      const id = this.resolveSession(options, sessions, activity, labels);
       const title = labels.title(id);
       scope = { kind: 'session', sessionId: id, ...(title ? { title } : {}) };
-      sessions = allSessions.filter((s) => s.sessionId === id);
-      activity = allActivity.filter((a) => a.sessionId === id);
+      sessions = sessions.filter((s) => s.sessionId === id);
+      activity = activity.filter((a) => a.sessionId === id);
       agentRuns = agentRuns.filter((r) => r.sessionId === id);
     }
 
     const ctx: ReviewContext = {
       now,
       scope,
+      ...(project ? { project } : {}),
       since,
       windowDays,
       installedSkills: installed,
-      skillUseCounts: counts,
+      skillUseCounts,
       ...(firstUse ? { usageTrackedSince: firstUse } : {}),
       daily,
       sessions,
@@ -231,6 +257,7 @@ export class ReviewService {
 
     const report: ReviewReport = {
       scope,
+      ...(project ? { project } : {}),
       since: scope.kind === 'session' ? (sessions[0]?.firstActivity ?? since) : since,
       until: now,
       summary: summarize(ctx),
@@ -241,7 +268,7 @@ export class ReviewService {
     };
     if (options.compare && scope.kind === 'window') {
       const comparison = await load('the previous window', undefined, () =>
-        this.compare(since, now, windowDays, activity),
+        this.compare(since, now, windowDays, activity, project),
       );
       if (comparison) return { report: { ...report, comparison, notes }, context: ctx };
     }
@@ -254,12 +281,14 @@ export class ReviewService {
     now: Date,
     windowDays: number,
     current: readonly SessionActivity[],
+    project?: string,
   ): Promise<WindowComparison> {
     const before = startOfDay(new Date(since.getTime() - windowDays * DAY_MS));
-    const [daily, activity] = await Promise.all([
-      this.deps.tokens.byPeriod('day', { since: before }),
+    const [daily, all] = await Promise.all([
+      this.deps.tokens.byPeriod('day', { since: before, ...(project ? { project } : {}) }),
       this.deps.activity.read(before),
     ]);
+    const activity = project ? all.filter((a) => a.project === project) : all;
     const until = new Date(now.getTime() + 1);
     return {
       current: windowStats(since, until, daily, current),
