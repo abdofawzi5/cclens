@@ -34,7 +34,7 @@ describe('CcusageTokenProvider (contract, recorded ccusage 20.0.51 output)', () 
     const rows = await p.byPeriod('day', {
       since: new Date(2026, 10, 18),
       until: new Date(2026, 10, 19),
-      project: 'site',
+      project: '-site',
     });
     expect(runner.calls[0]).toEqual([
       'node',
@@ -47,8 +47,7 @@ describe('CcusageTokenProvider (contract, recorded ccusage 20.0.51 output)', () 
       '20261118',
       '--until',
       '20261119',
-      '--project',
-      'site',
+      '--project=-site',
     ]);
     expect(rows).toHaveLength(2);
     expect(rows[0]).toMatchObject({ period: '2026-11-18', models: ['claude-opus-5-5'] });

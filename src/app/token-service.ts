@@ -7,6 +7,8 @@ import type {
   TokenFilter,
   UsageBlock,
 } from '../core/domain/tokens.js';
+import { resolveProject } from '../core/domain/projects.js';
+import { ValidationError } from '../core/errors.js';
 import type { SessionTitle } from '../core/domain/session-labels.js';
 import type { SessionActivitySource } from '../core/ports/review.js';
 import type { TokenUsageProvider } from '../core/ports/tokens.js';
@@ -24,6 +26,9 @@ export const TOKEN_VIEWS: readonly TokenView[] = [
   'project',
   'blocks',
 ];
+
+/** Views that can be narrowed to one project. */
+const PROJECT_VIEWS: readonly TokenView[] = ['daily', 'session', 'project'];
 
 export interface TokenTotals {
   readonly counts: TokenCounts;
@@ -63,6 +68,15 @@ export class TokenService {
   ) {}
 
   async report(view: TokenView, filter: TokenFilter = {}, limit?: number): Promise<TokenReport> {
+    if (filter.project && !PROJECT_VIEWS.includes(view)) {
+      throw new ValidationError(
+        `--project works with the ${PROJECT_VIEWS.join(', ')} views, not ${view}`,
+      );
+    }
+    if (filter.project) filter = { ...filter, project: await this.resolveProject(filter.project) };
+    // ccusage filters only its daily report by project; other views filter their own rows.
+    const { project, ...unfiltered } = filter;
+    const inProject = (r: { project: string }): boolean => !project || r.project === project;
     const latest = <T>(rows: readonly T[]): readonly T[] =>
       limit === undefined ? rows : rows.slice(-limit);
     const top = <T>(rows: readonly T[]): readonly T[] =>
@@ -78,17 +92,19 @@ export class TokenService {
       }
       case 'session': {
         const [all, titles] = await Promise.all([
-          this.provider.bySession(filter),
+          this.provider.bySession(unfiltered),
           this.sessionTitles(filter),
         ]);
-        const rows = top([...all].sort((a, b) => b.costUsd - a.costUsd)).map((r) => {
-          const title = titles.get(r.sessionId);
-          return title ? { ...r, title } : r;
-        });
+        const rows = top([...all.filter(inProject)].sort((a, b) => b.costUsd - a.costUsd)).map(
+          (r) => {
+            const title = titles.get(r.sessionId);
+            return title ? { ...r, title } : r;
+          },
+        );
         return { view, rows, totals: totalsOf(rows) };
       }
       case 'project': {
-        const rows = top(await this.provider.byProject(filter));
+        const rows = top((await this.provider.byProject(unfiltered)).filter(inProject));
         return { view, rows, totals: totalsOf(rows) };
       }
       case 'blocks': {
@@ -96,6 +112,12 @@ export class TokenService {
         return { view, rows, totals: totalsOf(rows) };
       }
     }
+  }
+
+  /** Maps a short name (`site`, `Workspace-site`) to the full project name ccusage expects. */
+  private async resolveProject(query: string): Promise<string> {
+    const known = (await this.provider.byProject()).map((p) => p.project);
+    return resolveProject(query, known);
   }
 
   /** Titles are a nicety: if transcripts cannot be read, the report still works. */

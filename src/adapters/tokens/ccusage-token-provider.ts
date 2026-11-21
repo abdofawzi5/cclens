@@ -138,7 +138,8 @@ export class CcusageTokenProvider implements TokenUsageProvider {
     const args = [...prefix, 'claude', report, '--json', '--offline', ...extra];
     if (filter.since) args.push('--since', ymd(filter.since));
     if (filter.until) args.push('--until', ymd(filter.until));
-    if (filter.project) args.push('--project', filter.project);
+    // One argument: project names start with "-", which ccusage would read as a flag.
+    if (filter.project) args.push(`--project=${filter.project}`);
 
     const result = await this.runner.run(command, args, {
       timeoutMs: this.options.timeoutMs ?? 120_000,
